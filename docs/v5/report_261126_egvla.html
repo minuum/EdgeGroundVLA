@@ -52,9 +52,10 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
     <a href="#sec4">4. 과적합 감사</a>
     <a href="#sec5">5. 실기 로드맵</a>
     <a href="#sec6" style="border-color:#22c55e;color:#4ade80">6. 11/25 실기 45/45 ★</a>
+    <a href="#sec7" style="border-color:#38bdf8;color:#7dd3fc">7. 배경·접근변화·기여점</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">🟣 EGVLA3 포함 확장판 보기 ↗</a>
-    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-25 21:23</span>
+    <span style="margin-left:auto;color:var(--mut)">생성 2026-11-26 01:48</span>
   </nav>
 
   <div class="hero">
@@ -424,6 +425,83 @@ table.main-tbl th{background:var(--head);color:#cbd5e1;font-size:.77rem}
         • <b>다음 단계 (EGVLA3 본편)</b>: <code>EG3_11_SoftLoc_Joint.pt</code> (<code>softloc_fp16</code>, <code>VLA_EGVLA2_NEAR_AREA=off</code>, <code>STOP_DEBOUNCE=2</code>)로 자율 멈춤 E2E 실기 파일럿 진행.
       </div>
     </div>
+  </section>
+  
+  <!-- 7. 배경 분석 · 접근 방식 변화 · 핵심 기여점 총정리 -->
+  <section class="act" id="sec7">
+    <h2>7. 배경 분석 · 접근 방식 변화 · 핵심 기여점 (누구나 이해하는 총정리)</h2>
+    <p class="lead">이 연구가 <b>왜 출발했고(Background)</b>, <b>무엇을 어떻게 바꿨으며(접근 변화)</b>, <b>교수님 피드백(물체별 정지 거리 차이)을 어떻게 풀고 있는지</b>를 비전공자도 이해할 수 있는 쉬운 설명과 함께 정리한다.</p>
+
+    <div style="background:#0b1324;border:1px solid #334155;border-left:4px solid #fbbf24;border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <h3 style="margin:0 0 8px;font-size:.98rem;color:#fcd34d">📌 Background &amp; 교수님 피드백 분석: 왜 물체마다 정지 거리가 다른가?</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;font-size:.82rem;line-height:1.6">
+        <div style="background:#08101f;border:1px solid #1e293b;border-radius:9px;padding:10px 12px">
+          <b style="color:#93c5fd">① 원래 풀려던 문제 (소량 데이터 지름길)</b><br>
+          • <b>쉬운 설명</b>: 로봇에게 “회색 바구니” 사진 300번만 보여주고 주행을 가르쳤더니, 로봇이 <b>“어떻게 갈지”보다 “바구니 사진의 배경/무늬”를 통째로 외우는 편법(지름길)</b>을 써버렸습니다.<br>
+          • 그 결과 처음 보는 의자 앞에서는 멈춰 서거나(<code>a3</code> 0/5), 반대로 가까이 가도 멈추지 못하고 부딪혔습니다(<code>a3-s2</code> 접촉 6건).
+        </div>
+        <div style="background:#08101f;border:1px solid #1e293b;border-radius:9px;padding:10px 12px">
+          <b style="color:#6ee7b7">② 교수님 피드백: 왜 의자에서 더 멀리 멈추는가?</b><br>
+          • <b>쉬운 설명</b>: <code>a3-ag23</code>은 <b>“카메라 화면의 23% 크기로 보일 때 멈춰라”</b>고 배웠습니다. 그런데 <b>의자는 바구니보다 실제 덩치가 약 2배 크기 때문에</b>, 훨씬 멀리 서 있어도 이미 화면의 23.9%를 꽉 채워 먼저 멈춘 것입니다.<br>
+          • 실제 <code>11/25</code> 실기에서도 바구니(<code>0.237</code>)와 의자(<code>0.239</code>) 모두 <b>면적 기준으로는 오차 0.002 이내로 똑같이</b> 작동했습니다.
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:.81rem;color:#cbd5e1;line-height:1.6;background:#070d19;border:1px solid #1e293b;border-radius:8px;padding:9px 12px">
+        <b>🛠️ 물체별 정지 거리 차이를 줄이는 3단계 진행 계획:</b>
+        <b>Step A (단일 상향, 즉시)</b> <code>A3C_AG28_s0.pt</code>(<code>stop_area=0.28</code>)로 조기 정지(25.8%→0.0%)를 없애 의자에 더 가까이 진입(<code>soda</code> 전송 완료, 발표 후 실기 예정) →
+        <b>Step B (물체 크기 무관 해법, 핵심)</b> 물체 크기에 따라 변하는 면적(<code>area</code>) 대신 <b>물체 발끝이 바닥에 닿는 하단 좌표(<code>y2 = cy + h/2</code>)</b>를 정지 라벨에 결합해 크기와 무관하게 실제 물리 거리(cm)로 정지 →
+        <b>Step C (의미 조건화)</b> 텍스트 임베딩(<code>1536-d</code>)이 물체 종류별 정지 거리를 자동 조절.
+      </div>
+    </div>
+
+    <h3 style="margin:12px 0 6px;font-size:.96rem;color:#7dd3fc">🔄 접근 방식의 변화: 무엇을 어떻게 바꿨고, 무엇이 달라졌는가?</h3>
+    <table class="main-tbl">
+      <thead><tr><th>변화 축</th><th>기존 접근 (Before)</th><th>바꾼 접근 (After)</th><th>어떻게 달라졌는가? (쉬운 설명 + 실측)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>① 정지·배경 지름길 제거</b></td>
+          <td><code>a3</code>: 핸들 방향(<code>cx</code>)만 맞추고 정지·배경은 데모 그대로 학습</td>
+          <td><code>a3-ag23</code>: <b>정지 면적(<code>area≥0.23</code>) 기하 정합</b> + <b>시각 배경 50% 무작위 교체</b></td>
+          <td>• <b>쉬운 설명</b>: 배경을 자꾸 바꿔치기해서 “위치와 크기”만 보고 판단하도록 훈련<br>• 의자 중앙 출발 <b>0/5 → 100%</b>, 시각 셔플 뒤집힘 <b>27.4% → 0.0%</b></td>
+        </tr>
+        <tr>
+          <td><b>② 속도 병목 &amp; 관성 충돌 해소</b></td>
+          <td><code>beam=3 fp32</code>(945ms) + 무감속 돌진(<code>11/24 V4</code> 40% 접촉 의심)</td>
+          <td><code>MOD-DR-Safe</code>: <b><code>beam=1 fp16</code></b> + <b>S2 선제 감속(0.14→0.25)</b> + 스파이크 필터</td>
+          <td>• <b>쉬운 설명</b>: 1초에 1번 보던 눈을 2배 빠르게 만들고, 도착 전 미리 브레이크를 밟음<br>• <b>11/25 실기 45/45 (100% 성공, 접촉 0건, 종단 397.1ms)</b></td>
+        </tr>
+        <tr>
+          <td><b>③ 엉뚱한 명령 차단</b></td>
+          <td><code>a3</code>는 텍스트 입력이 없어 “빨간 콘”이라 말해도 바구니로 출발</td>
+          <td><code>V4 / V4R</code>: <b>이미지+문구 결합(<code>1536-d</code>)</b> + <b>박스 좌우반전 훼손 증강</b></td>
+          <td>• <b>쉬운 설명</b>: 눈(박스)이 흔들려도 말(지시어)과 맞는지 끝까지 대조<br>• 비목표/부정 지시어 <b>99.5% 제자리 정지</b>, 반전 방어 <b>86.0% → 94.3%</b></td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <h3 style="margin:12px 0 6px;font-size:.96rem;color:#4ade80">🏆 논문(EdgeGround-VLA) 핵심 기여점 총정리</h3>
+    <table class="main-tbl">
+      <thead><tr><th>기여 항목</th><th>누구나 이해하는 쉬운 설명</th><th>정량적 증거 (Evidence)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>기여 1. 저데이터 Dual-Shortcut 규명·해소</b><br><span style="color:#94a3b8;font-size:.75rem"><code>a3 → a3-s2 → a3-ag23</code></span></td>
+          <td><b>쉬운 설명</b>: 바구니 데이터 300개만으로도 “배경 외우기”를 끊어, 처음 보는 의자·책상·화분에서도 똑바로 가고 멈추게 만듦</td>
+          <td>• 셔플 뒤집힘 <b>27.4% → 0.0%</b>, <code>S_area=+100.0%p</code><br>• T7 방향 정렬 <b>0.54°</b> (좌우 <b>98.7%</b>)</td>
+        </tr>
+        <tr>
+          <td><b>기여 2. 고속·안전 모듈러 서빙 실증</b><br><span style="color:#c4b5fd;font-size:.75rem"><code>MOD-DR-Fast/Safe</code></span></td>
+          <td><b>쉬운 설명</b>: 추론 속도를 2배 넘게 높이고 미리 감속하는 안전 브레이크를 붙여, 실제 로봇에서 단 1건의 충돌 없이 45번 연속 성공</td>
+          <td>• 디코더 <b>590.7→283.0ms (2.09x)</b>, 일치율 <b>99.7%</b><br>• <b>11/25 실기 45/45 (100%, 접촉 0건, 397.1ms)</b></td>
+        </tr>
+        <tr>
+          <td><b>기여 3. 언어 조건부 안전 게이트 &amp; 강건성</b><br><span style="color:#fcd34d;font-size:.75rem"><code>V4 / V4R (MOD-V4R)</code></span></td>
+          <td><b>쉬운 설명</b>: 바구니가 눈앞에 보여도 다른 물체를 시키면 움직이지 않으며, 박스 위치가 틀어져도 안정적으로 조향함</td>
+          <td>• 비목표 지시어 <b>99.5% 제자리 정지</b><br>• 박스 반전 조향 방어 <b>94.3%</b></td>
+        </tr>
+        
+      </tbody>
+    </table>
   </section>
 </main>
 </body>
