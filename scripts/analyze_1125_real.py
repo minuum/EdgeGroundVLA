@@ -167,6 +167,54 @@ def render_1125_section_html(sec_id: str = "sec6", title: str = "6. 2026-11-25 �
       </tbody>
     </table>
 
+    <div style="background:#0b1324;border:1px solid #334155;border-radius:12px;padding:14px 16px;margin:12px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <b style="font-size:.95rem;color:#f8fafc">📉 11/25 실기 45세션 감속 곡선 (937프레임 실측) &amp; 왜 S2 컨트롤러 감속이 필요한가</b>
+        <span style="font-size:.75rem;color:#94a3b8">X축: BBox 면적(<code>area</code>) · Y축: 속도 크기 (<code>model_magnitude</code> vs <code>S2 적용 유효 속도</code>)</span>
+      </div>
+      <svg viewBox="0 0 860 250" style="width:100%;height:auto;display:block;background:#070d19;border:1px solid #1e293b;border-radius:10px">
+        <!-- Grid & Axes -->
+        <line x1="65" y1="205" x2="825" y2="205" stroke="#475569" stroke-width="1.4"/>
+        <line x1="65" y1="22" x2="65" y2="205" stroke="#475569" stroke-width="1.4"/>
+        <line x1="65" y1="113" x2="825" y2="113" stroke="#1e293b" stroke-dasharray="4 4"/>
+        <line x1="65" y1="45" x2="825" y2="45" stroke="#1e293b" stroke-dasharray="4 4"/>
+        <!-- X ticks: 0.05..0.32 -> x = 65 + (a-0.05)/0.27 * 740 -->
+        <text x="65" y="222" text-anchor="middle" fill="#94a3b8" font-size="10.5">0.05</text>
+        <text x="202" y="222" text-anchor="middle" fill="#94a3b8" font-size="10.5">0.10</text>
+        <text x="312" y="222" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">0.14 (S2 시작)</text>
+        <text x="421" y="222" text-anchor="middle" fill="#60a5fa" font-size="10.5" font-weight="700">0.18 (모델 감속)</text>
+        <text x="558" y="222" text-anchor="middle" fill="#4ade80" font-size="10.5" font-weight="700">0.23 (정지)</text>
+        <text x="695" y="222" text-anchor="middle" fill="#94a3b8" font-size="10.5">0.28</text>
+        <text x="805" y="222" text-anchor="middle" fill="#94a3b8" font-size="10.5">0.32</text>
+        <text x="445" y="240" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="700">카메라 화면 내 목표물 BBox 면적 (area) — 오른쪽으로 갈수록 목표물에 가까움</text>
+        <!-- Y ticks: 0.0 -> 205, 1.0 -> 45 -->
+        <text x="56" y="209" text-anchor="end" fill="#94a3b8" font-size="10.5">0.0</text>
+        <text x="56" y="129" text-anchor="end" fill="#94a3b8" font-size="10.5">0.5</text>
+        <text x="56" y="49" text-anchor="end" fill="#94a3b8" font-size="10.5">1.0</text>
+        <!-- Shaded S2 pre-decel zone (0.14 -> 0.18) -->
+        <rect x="312" y="24" width="109" height="181" fill="rgba(251,191,36,0.08)"/>
+        <text x="366" y="38" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="700">S2 선제 제동</text>
+        <!-- 1) V4 / a3-s2 무감속 (점선 빨강) -->
+        <polyline points="65,64 202,64 312,64 421,64 558,64 695,64 805,64" fill="none" stroke="#f87171" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="725" y="57" fill="#fca5a5" font-size="10.5" font-weight="700">V4/a3-s2 (무감속 돌진)</text>
+        <!-- 2) a3-ag23 모델 자체 크기 (파랑): 0.075(0.786), 0.12(0.781), 0.16(0.739), 0.195(0.544), 0.22(0.236), 0.245(0.0) -->
+        <polyline points="133,79 257,80 366,87 462,118 531,167 599,205 805,205" fill="none" stroke="#60a5fa" stroke-width="2.6"/>
+        <circle cx="133" cy="79" r="3.5" fill="#60a5fa"/><circle cx="257" cy="80" r="3.5" fill="#60a5fa"/><circle cx="366" cy="87" r="3.5" fill="#60a5fa"/><circle cx="462" cy="118" r="3.5" fill="#60a5fa"/><circle cx="531" cy="167" r="3.5" fill="#60a5fa"/><circle cx="599" cy="205" r="3.5" fill="#60a5fa"/>
+        <!-- 3) MOD-DR-Safe 최종 유효 속도 (초록): 0.075(0.786), 0.12(0.781), 0.16(0.657), 0.195(0.374), 0.22(0.131), 0.245(0.0) -->
+        <polyline points="133,79 257,80 366,100 462,145 531,184 599,205 805,205" fill="none" stroke="#4ade80" stroke-width="3.2"/>
+        <circle cx="133" cy="79" r="4" fill="#4ade80"/><circle cx="257" cy="80" r="4" fill="#4ade80"/><circle cx="366" cy="100" r="4" fill="#4ade80"/><circle cx="462" cy="145" r="4" fill="#4ade80"/><circle cx="531" cy="184" r="4" fill="#4ade80"/><circle cx="599" cy="205" r="4" fill="#4ade80"/>
+        <!-- Legend -->
+        <text x="615" y="102" fill="#60a5fa" font-size="10.8" font-weight="700">● 모델 자체 감속 (0.18→0.23 학습)</text>
+        <text x="615" y="120" fill="#4ade80" font-size="10.8" font-weight="700">● + S2 적용 유효 속도 (0.14→0.23)</text>
+      </svg>
+      <div style="margin-top:9px;font-size:.81rem;color:#cbd5e1;line-height:1.6">
+        <b>🛡️ 왜 S2 컨트롤러 감속(<code>0.14→0.25</code>)을 별도로 만들어 놓았는가?</b>
+        ① <b>물리 관성 선제 제동</b>: <code>a3-ag23</code>의 학습 감속 구간(<code>0.18→0.23</code>)만으로는 제동 거리가 짧아, <code>0.14</code>부터 미리 속도를 줄여 실기 관성 충돌을 차단합니다.
+        ② <b>모델 무관 안전 계층(Safety Layer)</b>: <code>a3-s2</code>나 <code>V4</code>처럼 감속 학습이 안 된 체크포인트에서도 코드 수정 없이 재사용 가능한 독립 안전장치입니다.
+        ③ <b>2중 보증</b>: 오늘 <code>11/25</code> 실기에서도 <code>[0.14, 0.18)</code> 구간에서 S2가 먼저 <code>0.739→0.657</code>로 낮춘 뒤 모델 자체 감속(<code>0.544→0.236→0</code>)과 결합해 <b>접촉 0건</b>을 달성했습니다.
+      </div>
+    </div>
+
     <div style="background:#0b1324;border:1px solid #334155;border-left:4px solid #38bdf8;border-radius:10px;padding:12px 14px;font-size:.83rem;line-height:1.65;margin:12px 0">
       <b>🔍 왜 의자에서 더 멀리 멈췄는가? (현장 피드백 검증):</b><br>
       1. <b>모델 선제 정지 확인 (45/45, 100%)</b>: 바구니(<code>{bsk['first_idle_area_med']}</code>)와 의자(<code>{chr_['first_idle_area_med']}</code>) 모두 컨트롤러(<code>near_area=0.25</code>)가 개입하기 직전에 <b><code>a3-ag23</code> 모델 자체가 학습 기준(<code>area=0.23</code>)에 맞춰 먼저 <code>idle</code> 정지를 출력</b>했습니다.<br>
