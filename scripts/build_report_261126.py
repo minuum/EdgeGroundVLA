@@ -673,6 +673,7 @@ table.main-tbl th{{background:var(--head);color:#cbd5e1;font-size:.77rem}}
     <a href="#sec6" style="border-color:#22c55e;color:#4ade80">6. 11/25 실기 45/45 ★</a>
     <a href="#sec7" style="border-color:#38bdf8;color:#7dd3fc">7. 배경·접근변화·기여점</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 계열 전용</a>
+    <a href="paper_egvla1_vs_egvla2_plan.html" style="border-color:#fbbf24;color:#fde68a">📝 논문 계획 (EG1 vs EG2)</a>
     {ver_switch}
     <span style="margin-left:auto;color:var(--mut)">생성 {html.escape(gen_ts)}</span>
   </nav>

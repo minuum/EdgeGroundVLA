@@ -184,6 +184,7 @@ table.main-tbl th{{background:#16233f;color:#93c5fd}}
     <a href="#sec4">4. 과적합 감사 &amp; 속도</a>
     <a href="#sec5" style="border-color:#22c55e;color:#4ade80">5. 11/25 실기 45/45 ★</a>
     <a href="report_261126_egvla.html" style="border-color:#fbbf24;color:#fbbf24">← 261126 보고서 (EGVLA2)</a>
+    <a href="paper_egvla1_vs_egvla2_plan.html" style="border-color:#fbbf24;color:#fde68a">📝 논문 계획 (EG1 vs EG2)</a>
     <a href="report_261126_egvla_with_egvla3.html" style="border-color:#c084fc;color:#e9d5ff">261126 확장판 (EGVLA3)</a>
     <a href="model_registry.html">모델 레지스트리</a>
     <a href="research_story_egvla2.html#ch83">리서치 히스토리 (#ch83)</a>
