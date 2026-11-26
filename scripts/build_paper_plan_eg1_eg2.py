@@ -63,6 +63,7 @@ table.main-tbl th{{background:var(--head);color:#93c5fd;font-size:.78rem}}
     <a href="#sec2">2. 공통 경로 매트릭스</a>
     <a href="#sec3">3. 선행 정지거리 후보</a>
     <a href="#sec4">4. 논문 지표·체크리스트</a>
+    <a href="#sec5" style="border-color:#4ade80;color:#86efac">5. 현장 구조물·데이터 SOP</a>
     <a href="report_261126_egvla.html" style="border-color:#fbbf24;color:#fbbf24">← 261126 보고서</a>
     <a href="a3_lineage.html" style="border-color:#4ade80;color:#86efac">🧬 A3 전용</a>
     <a href="research_story_egvla2.html#ch83">리서치 히스토리</a>
@@ -243,8 +244,95 @@ table.main-tbl th{{background:var(--head);color:#93c5fd;font-size:.78rem}}
     <div class="box">
       <b>✅ 다음 액션 체크리스트:</b><br>
       1. <b>동환님</b>: <code>soda</code>에서 <code>A3C_AG28_s0.pt</code> 정지 거리 확인 (필요 시 <code>A3C_Y2_s0.pt</code> 5분 대조) → 교수님 보고.<br>
-      2. <b>사전 점검</b>: 본 실기 전 <code>soda</code>에서 <code>EGVLA1</code> 모델 구동 및 로그 저장 포맷 확인.<br>
-      3. <b>본 실기 &amp; 논문 집계</b>: 교수님 상세 수치 확정 후 <code>pos1~3 × G6~8</code> 실기 데이터 일괄 수집 및 논문 표·그림 자동 생성.
+      2. <b>사전 점검</b>: 본 실기 전 <code>soda</code>에서 <code>EGVLA1</code> 모델(<code>runs/v5_nav/mlp/exp73_stage1v3/exp73_owl_stage1v3_v6_mlp.pt</code>, 3.4M 확인 완료) 구동 및 로그 저장 포맷 확인.<br>
+      3. <b>본 실기 &amp; 논문 집계</b>: 교수님 상세 수치 확정 후 <code>pos1~3 × G6~8</code> 실기 데이터 일괄 수집 및 <code>aggregate_paper_eg1_eg2.py</code>로 논문 표·그림 자동 생성.
+    </div>
+  </section>
+
+  <!-- 5. 현장 테스트장 구조물 배치 안내 & 데이터 기록 SOP -->
+  <section class="act" id="sec5">
+    <h2>5. 현장 테스트장 구조물 배치 안내 &amp; 데이터 기록·자동 집계 SOP</h2>
+    <p class="lead"><code>EGVLA1</code>과 <code>EGVLA2</code>가 <b>완벽히 동일한 물리 공간·동일한 실패 기준</b>에서 비교되도록 바닥 테이프 마킹, 잔여거리 측정점, 현장 CSV 시트, 자동 집계 명령어를 하나로 표준화했다.</p>
+
+    <!-- 테스트장 바닥 마킹 & 잔여거리 측정 구조물 SVG -->
+    <div style="background:#0b1324;border:1px solid #334155;border-radius:12px;padding:13px 15px;margin-bottom:14px">
+      <b style="font-size:.9rem;color:#6ee7b7;display:block;margin-bottom:8px">🏗️ 테스트장 바닥 마킹 &amp; 잔여거리(cm) 측정 기준 도식 (Top-Down + 측면 측정점)</b>
+      <svg viewBox="0 0 920 230" style="width:100%;height:auto;display:block;background:#070d19;border:1px solid #1e293b;border-radius:9px">
+        <!-- 좌측: Top-Down 실험장 배치 -->
+        <rect x="16" y="16" width="540" height="198" rx="10" fill="#0b1528" stroke="#334155" stroke-width="1.5"/>
+        <text x="28" y="36" fill="#93c5fd" font-size="11" font-weight="800">① 실험장 바닥 마킹 (Top-Down · 마스킹 테이프 고정)</text>
+        <!-- 도착 존 G6, G7, G8 -->
+        <rect x="65" y="52" width="110" height="44" rx="7" fill="#14532d" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="4 2"/>
+        <text x="120" y="72" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800">G6 (테이프 A)</text>
+        <text x="120" y="87" text-anchor="middle" fill="#86efac" font-size="8.6">바구니 / 의자 / 책상</text>
+
+        <rect x="230" y="64" width="110" height="44" rx="7" fill="#14532d" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="4 2"/>
+        <text x="285" y="84" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800">G7 (테이프 B)</text>
+        <text x="285" y="99" text-anchor="middle" fill="#86efac" font-size="8.6">랜덤 배치 (고정)</text>
+
+        <rect x="395" y="48" width="110" height="44" rx="7" fill="#14532d" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="4 2"/>
+        <text x="450" y="68" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800">G8 (테이프 C)</text>
+        <text x="450" y="83" text-anchor="middle" fill="#86efac" font-size="8.6">랜덤 배치 (고정)</text>
+
+        <!-- 출발선 pos1, pos2, pos3 + 초기 헤딩 화살표 -->
+        <line x1="40" y1="168" x2="532" y2="168" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="530" y="162" text-anchor="end" fill="#7dd3fc" font-size="8.8">공통 출발선 (초기 헤딩 0° 고정)</text>
+
+        <rect x="82" y="174" width="76" height="28" rx="6" fill="#0c2d48" stroke="#38bdf8" stroke-width="1.6"/>
+        <text x="120" y="192" text-anchor="middle" fill="#e0f2fe" font-size="10" font-weight="800">pos1 (좌)</text>
+        <line x1="120" y1="174" x2="120" y2="145" stroke="#38bdf8" stroke-width="2"/>
+        <polygon points="120,139 115,148 125,148" fill="#38bdf8"/>
+
+        <rect x="247" y="174" width="76" height="28" rx="6" fill="#0c2d48" stroke="#38bdf8" stroke-width="1.6"/>
+        <text x="285" y="192" text-anchor="middle" fill="#e0f2fe" font-size="10" font-weight="800">pos2 (중)</text>
+        <line x1="285" y1="174" x2="285" y2="145" stroke="#38bdf8" stroke-width="2"/>
+        <polygon points="285,139 280,148 290,148" fill="#38bdf8"/>
+
+        <rect x="412" y="174" width="76" height="28" rx="6" fill="#0c2d48" stroke="#38bdf8" stroke-width="1.6"/>
+        <text x="450" y="192" text-anchor="middle" fill="#e0f2fe" font-size="10" font-weight="800">pos3 (우)</text>
+        <line x1="450" y1="174" x2="450" y2="145" stroke="#38bdf8" stroke-width="2"/>
+        <polygon points="450,139 445,148 455,148" fill="#38bdf8"/>
+
+        <!-- 우측: 잔여거리 cm 측정 기준 (측면도) -->
+        <rect x="572" y="16" width="332" height="198" rx="10" fill="#0b1528" stroke="#334155" stroke-width="1.5"/>
+        <text x="584" y="36" fill="#fcd34d" font-size="11" font-weight="800">② 잔여거리 (cm) 줄자 측정 기준</text>
+        <line x1="588" y1="162" x2="888" y2="162" stroke="#64748b" stroke-width="1.8"/>
+        <!-- 로봇 -->
+        <rect x="602" y="116" width="66" height="46" rx="6" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.8"/>
+        <text x="635" y="143" text-anchor="middle" fill="#fff" font-size="10" font-weight="800">Serbot</text>
+        <!-- 목표물 -->
+        <rect x="794" y="84" width="76" height="78" rx="6" fill="#14532d" stroke="#4ade80" stroke-width="1.8"/>
+        <text x="832" y="128" text-anchor="middle" fill="#86efac" font-size="10" font-weight="800">목표 객체</text>
+        <!-- 줄자 화살표 -->
+        <line x1="668" y1="142" x2="794" y2="142" stroke="#fbbf24" stroke-width="2.6"/>
+        <polygon points="668,142 677,137 677,147" fill="#fbbf24"/>
+        <polygon points="794,142 785,137 785,147" fill="#fbbf24"/>
+        <rect x="688" y="118" width="88" height="20" rx="4" fill="#451a03"/>
+        <text x="732" y="132" text-anchor="middle" fill="#fde047" font-size="10" font-weight="800">d (cm) 측정</text>
+        <text x="588" y="182" fill="#cbd5e1" font-size="9.2">• 기준: 로봇 앞범퍼 끝 ↔ 목표물 최단 앞면(바닥 투영)</text>
+        <text x="588" y="198" fill="#fca5a5" font-size="9.2">• 접촉/부딪힘 발생 시: d=0, contact_yn=Y, outcome=충돌실패</text>
+      </svg>
+    </div>
+
+    <div class="g2">
+      <!-- 실패 판정 기준표 -->
+      <div class="box" style="margin-top:0;border-left-color:#f87171">
+        <b>⚖️ 공통 성공 / 실패 판정 기준 (EGVLA1 · EGVLA2 동일 적용)</b><br>
+        • <span class="bd b-ok">성공</span>: 목표 객체 앞 적정 거리 이내에서 접촉 없이 자율 정지<br>
+        • <span class="bd b-bad">충돌실패</span>: 목표물 또는 장애물에 물리적으로 닿거나 밀고 들어감 (<code>contact_yn=Y</code>)<br>
+        • <span class="bd b-warn">원거리실패</span>: 출발 후 목표물과 지나치게 먼 거리(교수님 확정 상한 초과)에서 조기 정지<br>
+        • <span class="bd b-bad">이탈실패</span>: 비출발(0cm), 반대 방향 이탈, 탐색 타임아웃
+      </div>
+
+      <!-- 데이터 시트 & 자동 집계 명령 -->
+      <div class="box" style="margin-top:0;border-left-color:#38bdf8">
+        <b>📂 현장 기록 시트 &amp; 자동 집계 도구 (구현 완료)</b><br>
+        • 현장 기록 CSV 템플릿 (108행, N=3 기본 / N=5 생성 가능):<br>
+          <a href="paper_eg1_eg2_field_sheet.csv" download style="color:#4ade80;font-weight:700">⬇️ paper_eg1_eg2_field_sheet.csv 다운로드</a><br>
+        • 현장 입력 필수 4칸: <code>session_id</code>, <code>outcome</code>, <code>contact_yn</code>, <code>remain_dist_cm</code><br>
+        • 실기 후 논문 표·9경로 히트맵 자동 집계 명령:<br>
+          <code>.venv/bin/python3 scripts/aggregate_paper_eg1_eg2.py --sheet docs/v5/paper_eg1_eg2_field_sheet.csv --reports-dir _received_paper_reports</code>
+      </div>
     </div>
   </section>
 </main>
