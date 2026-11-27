@@ -170,7 +170,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = "minwoo_portfolio_studio_v7";
+const STORAGE_KEY = "minwoo_portfolio_studio_v8";
 const DEFAULT_IMG_BASE = "https://minuum.github.io/EdgeGroundVLA/v5/portfolio_kit";
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:8001/api/notion" : "/api/notion";
 
@@ -197,10 +197,10 @@ const DEFAULT_DATA = {
     {
       id: "sec3",
       enabled: true,
-      heading: "3. Failure Diagnosis · 왜 로봇은 처음 본 물체 앞에서 멈추거나 부딪힐까?",
-      body: "- 문제: 실기 오류 630건 중 81.4%가 대체 가능 행동이었고, 모델이 물체 위치 대신 배경 외형을 암기해 낯선 물체에서 오작동했습니다.\n- 해결: 반사실 배경 교체 테스트로 외형 편향을 진단하고, 50% 시각 특징 교체와 미분가능 공간 병목(Soft-Loc)을 도입했습니다.\n- 결과: 배경 교체 시 오판율을 27.4%→0.0%로 없앴고, End-to-End 구조에서 미학습 의자 정지율을 18.6%→100%로 끌어올렸습니다.",
+      heading: "3. Failure Diagnosis · Visual Shortcut & Spatial Bottleneck Ablation",
+      body: "- 출발점 (EGVLA-1): 오프라인 오류 630건 중 81.4%가 대체 가능 행동(치명 좌우 반전 1.97%)임을 확인하고, 저데이터 모방학습의 배경 외형 암기(Visual Shortcut)를 핵심 연구 질문으로 설정했습니다.\n- 반사실 감사 (1,458 실기 프레임): BBox를 고정하고 768-d 시각 특징만 무작위 교체했을 때 a3의 정지 판정이 27.4% 뒤집혔으나, 50% Feature Swap + 기하 정합(a3-ag23)으로 0.0%까지 제거했습니다.\n- End-to-End Ablation: 공간 병목이 없는 EG3-08(Hidden)은 미학습 의자 정지가 18.6%에 그쳤으나, 미분 가능 공간 병목(Soft-Loc)을 도입해 97.7~100.0%로 복구했습니다.",
       img: "03_research_question_diagnostic.png",
-      imgCaption: "실기 카메라 프레임 기반 실패 진단 및 반사실 검증 결과"
+      imgCaption: "Figure 3. Real-Camera Failure Diagnosis & Counterfactual Visual-Swap Audit (1,458 Real Frames)"
     },
     {
       id: "sec4",

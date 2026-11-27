@@ -595,98 +595,172 @@ def build_02_edgeground_vla_v1_v2() -> None:
     _save_svg_and_png("02_edgeground_vla_v1_v2", svg_str)
 
 
-def _draw_scene_overlay(x0: float, y0: float, w: float, h: float, sc: dict, items: list[tuple[str, str, str, float]]) -> str:
+def _draw_pub_diag_scene(
+    x0: float, y0: float, w: float, h: float, sc: dict,
+    items: list[tuple[str, str, str, float]],
+) -> str:
+    """CVPR/ICRA 논문 스타일 실기 실패 진단 카메라 오버레이 (직각 프레임, Okabe-Ito, 깔끔한 라벨)."""
     img_uri = _b64_img(f"docs/v5/{sc['img_src']}")
-    cid = f"clip_{sc['id']}"
+    cid = f"pubdiag_{sc['id']}"
     elems = [
-        f'<clipPath id="{cid}"><rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="10"/></clipPath>',
+        f'<clipPath id="{cid}"><rect x="{x0}" y="{y0}" width="{w}" height="{h}"/></clipPath>',
         f'<image href="{img_uri}" x="{x0}" y="{y0}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#{cid})"/>',
-        f'<rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="10" fill="none" stroke="#94a3b8" stroke-width="1.2"/>',
+        f'<rect x="{x0}" y="{y0}" width="{w}" height="{h}" fill="none" stroke="#111827" stroke-width="0.9"/>',
     ]
     bb = sc["bbox"]
     side = math.sqrt(max(0.002, float(bb[2])))
-    bw = min(0.92, side * 1.15) * w
-    bh = min(0.92, side / 1.15) * h
+    bw = min(0.90, side * 1.15) * w
+    bh = min(0.90, side / 1.15) * h
     bx = x0 + max(3.0, min(w - bw - 3.0, float(bb[0]) * w - bw / 2.0))
     by = y0 + max(3.0, min(h - bh - 3.0, float(bb[1]) * h - bh / 2.0))
-    elems.append(f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="none" stroke="#38bdf8" stroke-width="2.5"/>')
-    elems.append(f'<rect x="{bx:.1f}" y="{max(y0+4, by-18):.1f}" width="154" height="17" rx="4" fill="rgba(15,23,42,0.82)"/>')
-    elems.append(f'<text x="{bx+5:.1f}" y="{max(y0+16, by-6):.1f}" font-family="{FONT}" font-size="10" font-weight="700" fill="#7dd3fc">Target BBox (area={bb[2]:.2f})</text>')
+    elems.append(f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="none" stroke="#0072B2" stroke-width="2.2"/>')
+    elems.append(f'<rect x="{bx:.1f}" y="{max(y0+3, by-16):.1f}" width="132" height="15" fill="rgba(255,255,255,0.90)"/>')
+    elems.append(f'<text x="{bx+4:.1f}" y="{max(y0+13, by-5):.1f}" font-family="{PUB_MONO}" font-size="8.6" font-weight="700" fill="#0072B2">BBox area={bb[2]:.2f}</text>')
 
-    ox, oy, scale = x0 + w * 0.5, y0 + h - 22.0, 128.0
+    ox, oy, scale = x0 + w * 0.5, y0 + h - 16.0, 118.0
     ms = sc["models"]
     for key, label, col, yoff in items:
         m = ms[key]
         lx, ly = float(m["cmd"][0]), float(m["cmd"][1])
         if m["stop"]:
-            r = 8.0 + abs(yoff) * 0.35
-            elems.append(f'<circle cx="{ox:.1f}" cy="{oy:.1f}" r="{r:.1f}" fill="none" stroke="{col}" stroke-width="3.0"/>')
-            lx_pos = ox + r + 8 if yoff >= 0 else ox - r - 122
-            elems.append(f'<rect x="{lx_pos:.1f}" y="{oy - 9 + yoff*0.5:.1f}" width="116" height="18" rx="4" fill="rgba(15,23,42,0.84)"/>')
-            elems.append(f'<text x="{lx_pos+5:.1f}" y="{oy + 3 + yoff*0.5:.1f}" font-family="{FONT}" font-size="10" font-weight="700" fill="{col}">{html.escape(label)}: STOP</text>')
+            r = 8.0 + abs(yoff) * 0.25
+            elems.append(f'<circle cx="{ox:.1f}" cy="{oy:.1f}" r="{r:.1f}" fill="none" stroke="{col}" stroke-width="2.8"/>')
+            lx_pos = ox + r + 8 if yoff >= 0 else ox - r - 144
+            elems.append(f'<rect x="{lx_pos:.1f}" y="{oy - 9 + yoff*0.4:.1f}" width="136" height="16" fill="rgba(255,255,255,0.92)" stroke="{col}" stroke-width="0.8"/>')
+            elems.append(f'<text x="{lx_pos+4:.1f}" y="{oy + 2 + yoff*0.4:.1f}" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{col}">{html.escape(label)}: STOP</text>')
         else:
-            tx = max(x0 + 18, min(x0 + w - 102, ox - ly * scale))
-            ty = max(y0 + 24, min(y0 + h - 18, oy - lx * scale))
-            elems.append(f'<line x1="{ox:.1f}" y1="{oy:.1f}" x2="{tx:.1f}" y2="{ty:.1f}" stroke="{col}" stroke-width="3.4" stroke-linecap="round"/>')
-            elems.append(f'<circle cx="{tx:.1f}" cy="{ty:.1f}" r="4.5" fill="{col}"/>')
-            elems.append(f'<rect x="{tx+7:.1f}" y="{ty - 10 + yoff*0.4:.1f}" width="124" height="18" rx="4" fill="rgba(15,23,42,0.84)"/>')
-            elems.append(f'<text x="{tx+12:.1f}" y="{ty + 2 + yoff*0.4:.1f}" font-family="{FONT}" font-size="10" font-weight="700" fill="{col}">{html.escape(label)}: GO</text>')
+            tx = max(x0 + 18, min(x0 + w - 135, ox + ly * scale))
+            ty = max(y0 + 22, min(y0 + h - 18, oy - lx * scale))
+            elems.append(f'<line x1="{ox:.1f}" y1="{oy:.1f}" x2="{tx:.1f}" y2="{ty:.1f}" stroke="{col}" stroke-width="3.2" stroke-linecap="round"/>')
+            elems.append(f'<circle cx="{tx:.1f}" cy="{ty:.1f}" r="4.0" fill="{col}"/>')
+            elems.append(f'<rect x="{tx+7:.1f}" y="{ty - 9 + yoff*0.35:.1f}" width="132" height="16" fill="rgba(255,255,255,0.92)" stroke="{col}" stroke-width="0.8"/>')
+            elems.append(f'<text x="{tx+11:.1f}" y="{ty + 2 + yoff*0.35:.1f}" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{col}">{html.escape(label)}: GO</text>')
     return "\n".join(elems)
 
 
 def build_03_research_question_diagnostic() -> None:
-    """카드 3: 왜 로봇 정책은 낯선 물체에서 실패하는가? (실기 카메라 오버레이 + 반사실 감사)."""
-    W, H = 1100, 550
+    """Figure 3: CVPR/ICRA Publication Style — Visual Shortcut Diagnosis & Counterfactual Audit."""
+    W, H = 1100, 745
     fam = json.loads((ROOT / "docs/v5/egvla2_fm/family_arch_compare.json").read_text(encoding="utf-8"))
     sc_map = {s["id"]: s for s in fam["scenes"]}
     sc1 = sc_map["sc1_chair_center"]
     sc3 = sc_map["sc3_chair_close"]
 
-    ov1 = _draw_scene_overlay(
-        44, 152, 484, 236, sc1,
-        [("MOD-A3", "기존 정책", "#f87171", -14), ("MOD-A3-AG", "제안 정책", "#4ade80", 0)],
+    C1, C2, C3, WARN = "#0072B2", "#009E73", "#D55E00", "#E69F00"
+    INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
+
+    ov1 = _draw_pub_diag_scene(
+        36, 68, 494, 214, sc1,
+        [("MOD-A3", "a3 (Baseline)", C3, -10), ("MOD-A3-AG", "a3-ag23", C2, 0)],
     )
-    ov2 = _draw_scene_overlay(
-        572, 152, 484, 236, sc3,
-        [("VLM-E2E-Hidden", "일반 E2E", "#f87171", -10), ("VLM-E2E-SoftLoc", "공간 병목 E2E", "#4ade80", 12)],
+    ov2 = _draw_pub_diag_scene(
+        570, 68, 494, 214, sc3,
+        [("VLM-E2E-Hidden", "EG3-08 Hidden", C3, -6), ("VLM-E2E-SoftLoc", "Soft-Loc / AG23", C2, 10)],
     )
 
-    body = f'''
-    <rect x="28" y="24" width="176" height="24" rx="12" fill="#fef3c7"/>
-    <text x="116" y="40" text-anchor="middle" font-family="{FONT}" font-size="11" font-weight="700" fill="#b45309">FAILURE DIAGNOSIS</text>
-    <text x="216" y="41" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#475569">실기 오류 630건 중 81.4%가 대체 가능 행동 → 외형 지름길(Visual Shortcut) 규명</text>
-    <text x="28" y="76" font-family="{FONT}" font-size="22" font-weight="700" fill="#0f172a">왜 로봇은 처음 보는 물체 앞에서 멈추거나 부딪힐까?</text>
+    # ── Panel (c): Counterfactual Protocol + Visual-Swap Flip Rate Bar Chart ──
+    c_svg = [
+        f'<text x="36" y="362" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Counterfactual Visual-Swap Audit (Lower Flip Rate = Less Shortcut)</text>',
+        f'<line x1="36" y1="371" x2="530" y2="371" stroke="{RULE}" stroke-width="0.8"/>',
+        # 미니 반사실 개입 도식 (BBox Fixed + Vis Shuffled -> Measure Flip)
+        f'<rect x="36" y="382" width="144" height="32" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
+        f'<text x="108" y="396" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C1}">BBox: Fixed</text>',
+        f'<text x="108" y="408" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" fill="{MUT}">[cx, cy, area, has]</text>',
+        f'<text x="190" y="402" text-anchor="middle" font-family="{PUB_FONT}" font-size="11" font-weight="700" fill="{INK}">+</text>',
+        f'<rect x="200" y="382" width="154" height="32" rx="2" fill="#FFF7ED" stroke="{C3}" stroke-width="1.0"/>',
+        f'<text x="277" y="396" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C3}">Vis 768-d: Shuffled</text>',
+        f'<text x="277" y="408" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" fill="{MUT}">Random frame feature</text>',
+        f'<line x1="354" y1="398" x2="374" y2="398" stroke="{INK}" stroke-width="1.2" marker-end="url(#pubArr)"/>',
+        f'<rect x="376" y="382" width="154" height="32" rx="2" fill="#F9FAFB" stroke="#6B7280" stroke-width="1.0"/>',
+        f'<text x="453" y="396" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{INK}">Stop-Flip Rate (%)</text>',
+        f'<text x="453" y="408" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" fill="{MUT}">Ideal = 0.0% (Zero bias)</text>',
+    ]
+    swap_bars = [
+        ("MOD-A3 (a3 · Baseline)", 27.4, C3),
+        ("VLM-E2E-Hidden (EG3-08)", 14.9, C3),
+        ("MOD-A3-s2 (11/16 Real)", 11.0, WARN),
+        ("MOD-A3-AG (a3-ag23)", 0.0, C2),
+        ("VLM-E2E-SoftLoc (EG3-10/11)", 0.0, C2),
+    ]
+    sy = 446
+    for lbl, val, col in swap_bars:
+        bw = max(3.0, 230.0 * (val / 30.0))
+        c_svg.append(f'<text x="36" y="{sy}" font-family="{PUB_FONT}" font-size="9.4" font-weight="{"700" if val==0 else "400"}" fill="{INK}">{html.escape(lbl)}</text>')
+        c_svg.append(f'<rect x="218" y="{sy-10}" width="230" height="14" fill="#F3F4F6"/>')
+        c_svg.append(f'<rect x="218" y="{sy-10}" width="{bw:.1f}" height="14" fill="{col}"/>')
+        c_svg.append(f'<text x="456" y="{sy}" font-family="{PUB_MONO}" font-size="9.4" font-weight="700" fill="{col}">{val:.1f}%</text>')
+        sy += 36
+    c_svg.append(f'<text x="36" y="646" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">* Motivation (EGVLA-1): 81.4% of 630 offline errors were substitutable actions (1.97% critical L/R flip),</text>')
+    c_svg.append(f'<text x="44" y="660" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">revealing that label-only imitation memorizes appearance shortcuts rather than target geometry.</text>')
 
-    <!-- 좌측 장면 -->
-    <rect x="28" y="96" width="516" height="334" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <text x="44" y="122" font-family="{FONT}" font-size="13.5" font-weight="700" fill="#0f172a">① 출발 실패 진단 (처음 본 의자 정중앙 · 실기 카메라)</text>
-    <text x="44" y="140" font-family="{FONT}" font-size="11" fill="#475569">명령: "go to the brown wooden chair" (바구니 데이터로만 학습)</text>
-    {ov1}
-    <text x="44" y="408" font-family="{FONT}" font-size="11.5" fill="#334155"><tspan font-weight="700" fill="#dc2626">기존 정책</tspan>: 배경 외형에 과적합돼 이미 도착으로 오인 → <tspan font-weight="700">실기 0/5 비출발</tspan></text>
-    <text x="44" y="423" font-family="{FONT}" font-size="11.5" fill="#334155"><tspan font-weight="700" fill="#059669">제안 정책</tspan>: 50% 시각 특징 교체 + 기하 정합 → <tspan font-weight="700">100% 정상 출발</tspan></text>
+    # ── Panel (d): Full Counterfactual Audit Matrix (Booktabs) ──
+    d_rows = [
+        ("MOD-A3 (a3)", "0.0%", "46.5%", "27.4%", "+2.7%p", "Shortcut", C3),
+        ("MOD-A3-s2", "100.0%", "30.2%", "11.0%", "-0.3%p", "Partial", WARN),
+        ("MOD-A3-AG", "100.0%", "93.0%", "0.0%", "+100.0%p", "Clean", C2),
+        ("EG3-08 Hidden", "100.0%", "18.6%", "14.9%", "0.0%p", "Shortcut", C3),
+        ("EG3-10 SoftLoc+", "100.0%", "100.0%", "0.0%", "+100.0%p", "Clean", C2),
+        ("EG3-11 Joint", "100.0%", "97.7%", "0.0%", "+100.0%p", "Clean", C2),
+    ]
+    dy0 = 408
+    drh = 34
+    d_svg = [
+        f'<text x="570" y="362" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(d) Counterfactual Audit Matrix (1,458 Real Frames, Unseen Chair)</text>',
+        f'<line x1="570" y1="{dy0-17}" x2="1064" y2="{dy0-17}" stroke="{INK}" stroke-width="1.5"/>',
+        f'<text x="570" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Model</text>',
+        f'<text x="688" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Chair Go</text>',
+        f'<text x="756" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Chair Stop</text>',
+        f'<text x="832" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Swap Flip</text>',
+        f'<text x="904" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">S_area</text>',
+        f'<text x="984" y="{dy0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Verdict</text>',
+        f'<line x1="570" y1="{dy0+8}" x2="1064" y2="{dy0+8}" stroke="{INK}" stroke-width="0.9"/>',
+    ]
+    for i, (m, cgo, cst, flp, sa, verd, col) in enumerate(d_rows):
+        ry = dy0 + 28 + i * drh
+        if i % 2 == 1:
+            d_svg.append(f'<rect x="570" y="{ry-17}" width="494" height="{drh}" fill="#F9FAFB"/>')
+        if i == 3:
+            d_svg.append(f'<line x1="570" y1="{ry-17}" x2="1064" y2="{ry-17}" stroke="#9CA3AF" stroke-width="0.7" stroke-dasharray="3 2"/>')
+        d_svg.append(f'<text x="570" y="{ry}" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">{html.escape(m)}</text>')
+        d_svg.append(f'<text x="688" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" fill="{C3 if cgo=="0.0%" else INK}">{cgo}</text>')
+        d_svg.append(f'<text x="756" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" font-weight="{"700" if col==C2 else "400"}" fill="{col if col!=WARN else INK}">{cst}</text>')
+        d_svg.append(f'<text x="832" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" font-weight="{"700" if flp=="0.0%" else "400"}" fill="{C2 if flp=="0.0%" else C3}">{flp}</text>')
+        d_svg.append(f'<text x="904" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" fill="{C2 if "+100" in sa else MUT}">{sa}</text>')
+        d_svg.append(f'<text x="984" y="{ry}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{col}">{verd}</text>')
+    dbot = dy0 + 28 + len(d_rows) * drh - 12
+    d_svg.append(f'<line x1="570" y1="{dbot}" x2="1064" y2="{dbot}" stroke="{INK}" stroke-width="1.5"/>')
+    d_svg.append(f'<text x="570" y="{dbot+20}" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">* S_area: stop-rate sensitivity when BBox area increases from &lt;0.10 to &gt;=0.25 (fixed visual feat.).</text>')
 
-    <!-- 우측 장면 -->
-    <rect x="556" y="96" width="516" height="334" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <text x="572" y="122" font-family="{FONT}" font-size="13.5" font-weight="700" fill="#0f172a">② 근접 충돌 진단 (처음 본 의자 코앞 · area=0.36)</text>
-    <text x="572" y="140" font-family="{FONT}" font-size="11" fill="#475569">End-to-End 정책에서 명시적 공간 병목(Spatial Bottleneck) 유무 비교</text>
-    {ov2}
-    <text x="572" y="408" font-family="{FONT}" font-size="11.5" fill="#334155"><tspan font-weight="700" fill="#dc2626">일반 E2E</tspan>: 공간 병목 없이 특징만 연결 → <tspan font-weight="700">의자 정지 18.6% (충돌 위험)</tspan></text>
-    <text x="572" y="423" font-family="{FONT}" font-size="11.5" fill="#334155"><tspan font-weight="700" fill="#059669">공간 병목 E2E (Soft-Loc)</tspan>: 미분가능 위치 표현 → <tspan font-weight="700">100% 정확 정지</tspan></text>
+    svg_str = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
+  <defs>
+    <marker id="pubArr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0.8 L5.2,3 L0,5.2 Z" fill="{INK}"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="{W}" height="{H}" fill="#FFFFFF"/>
+  <!-- Panel (a) -->
+  <text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) Unseen Start Failure (sc1_chair_center, area = 0.06)</text>
+  <line x1="36" y1="43" x2="530" y2="43" stroke="{RULE}" stroke-width="0.8"/>
+  <text x="36" y="59" font-family="{PUB_FONT}" font-size="9.2" fill="{MUT}">Prompt: &quot;go to the brown wooden chair&quot; (Trained on basket only, 300 ep)</text>
+  {ov1}
+  <rect x="36" y="290" width="494" height="36" rx="2" fill="#F8FAFC" stroke="#E5E7EB" stroke-width="0.9"/>
+  <text x="44" y="305" font-family="{PUB_MONO}" font-size="8.4" fill="{C3}">a3: [0.04,-0.02] STOP (Real 0/5)  —  768-d appearance shortcut</text>
+  <text x="44" y="319" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C2}">a3-ag23: [0.68,-0.02] GO (100%)   —  50% Feature Swap + Area Align</text>
 
-    <!-- 하단 정량 요약 -->
-    <rect x="28" y="444" width="1044" height="84" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
-    <text x="48" y="470" font-family="{FONT}" font-size="13" font-weight="700" fill="#0f172a">반사실 검증 (Counterfactual Test) — 물체 위치는 고정하고 배경 시각 특징만 무작위 교체</text>
+  <!-- Panel (b) -->
+  <text x="570" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) Unseen Close-Stop Ablation (sc3_chair_close, area = 0.36)</text>
+  <line x1="570" y1="43" x2="1064" y2="43" stroke="{RULE}" stroke-width="0.8"/>
+  <text x="570" y="59" font-family="{PUB_FONT}" font-size="9.2" fill="{MUT}">End-to-End VLA Ablation: Latent Hidden State vs. Differentiable Spatial Bottleneck</text>
+  {ov2}
+  <rect x="570" y="290" width="494" height="36" rx="2" fill="#F8FAFC" stroke="#E5E7EB" stroke-width="0.9"/>
+  <text x="578" y="305" font-family="{PUB_MONO}" font-size="8.4" fill="{C3}">EG3-08 (Hidden): [0.26,+0.15] GO (18.6% stop)  —  no spatial bottleneck</text>
+  <text x="578" y="319" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C2}">Soft-Loc / AG23: [0.00, 0.00] STOP (93-100%)   —  geometric grounding</text>
 
-    <rect x="48" y="484" width="320" height="32" rx="8" fill="#fef2f2" stroke="#fecaca"/>
-    <text x="208" y="504" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#b91c1c">배경 교체 시 오판율: 27.4% → 0.0%</text>
-
-    <rect x="386" y="484" width="324" height="32" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
-    <text x="548" y="504" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#047857">물체 근접 반응성: -0.3%p → +100%p</text>
-
-    <rect x="728" y="484" width="324" height="32" rx="8" fill="#f5f3ff" stroke="#ddd6fe"/>
-    <text x="890" y="504" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#6d28d9">E2E 미학습 정지율: 18.6% → 100.0%</text>
-    '''
-    _save_svg_and_png("03_research_question_diagnostic", _svg_shell(W, H, body))
+  {"".join(c_svg)}
+  {"".join(d_svg)}
+  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 3. Diagnosis of visual shortcut overfitting on unseen objects via real-camera overlays (a, b) and counterfactual visual-feature swap audit across 1,458 frames (c, d).</text>
+</svg>'''
+    _save_svg_and_png("03_research_question_diagnostic", svg_str)
 
 
 def build_04_eg1_vs_eg2_protocol_y2() -> None:
