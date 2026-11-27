@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
 import json
 import os
 import re
@@ -19,6 +20,7 @@ import urllib.error
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 
 NOTION_VERSION = "2022-06-28"
 ROOT = Path(__file__).resolve().parent.parent
@@ -72,6 +74,19 @@ def _rich_text(text: str, bold: bool = False, url: str | None = None) -> dict:
     if bold:
         obj["annotations"] = {"bold": True}
     return obj
+
+
+def _bust_image_url(img_url: str) -> str:
+    """로컬 파일의 SHA1 해시(?v=...)를 자동 부착해 Notion/CDN 이미지 캐시를 무효화한다."""
+    if not img_url.startswith("https://"):
+        return img_url
+    fname = Path(urlparse(img_url).path).name
+    local_fp = DOCS_DIR / "v5/portfolio_kit" / fname
+    if local_fp.exists():
+        h = hashlib.sha1(local_fp.read_bytes()).hexdigest()[:8]
+        sep = "&" if "?" in img_url else "?"
+        return f"{img_url}{sep}v={h}"
+    return img_url
 
 
 def _build_blocks(payload: dict) -> list[dict]:
@@ -135,7 +150,7 @@ def _build_blocks(payload: dict) -> list[dict]:
             blocks.append({
                 "object": "block",
                 "type": "image",
-                "image": {"type": "external", "external": {"url": img_url}},
+                "image": {"type": "external", "external": {"url": _bust_image_url(img_url)}},
             })
         blocks.append({"object": "block", "type": "divider", "divider": {}})
 

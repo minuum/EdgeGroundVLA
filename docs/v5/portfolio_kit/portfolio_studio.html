@@ -317,7 +317,7 @@ function render() {
     const imgBox = document.createElement("div");
     imgBox.className = "img-box";
     const img = document.createElement("img");
-    img.src = sec.img;
+    img.src = sec.img + "?t=" + Date.now();
     img.alt = sec.imgCaption;
 
     const foot = document.createElement("div");
