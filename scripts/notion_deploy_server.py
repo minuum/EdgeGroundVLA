@@ -76,11 +76,26 @@ def _rich_text(text: str, bold: bool = False, url: str | None = None) -> dict:
 
 def _build_blocks(payload: dict) -> list[dict]:
     blocks: list[dict] = []
-    title = str(payload.get("doc_title") or "이민우 (Minwoo Lee) — 연구 포트폴리오").strip()
+    # 상단 원라인 요약 콜아웃 + 클릭 가능한 링크
+    summary_line = str(
+        payload.get("hero_callout")
+        or "클라우드·지도 없이 엣지 로봇에서 작동하고, 미학습 물체에도 안전하게 일반화되는 온디바이스 VLA 정책을 연구·구현합니다."
+    ).strip()
     blocks.append({
         "object": "block",
-        "type": "heading_1",
-        "heading_1": {"rich_text": [_rich_text(title)]},
+        "type": "callout",
+        "callout": {
+            "icon": {"type": "emoji", "emoji": "🤖"},
+            "color": "gray_background",
+            "rich_text": [
+                _rich_text(summary_line + "\n"),
+                _rich_text("Project Page", bold=True, url="https://minuum.github.io/EdgeGroundVLA/"),
+                _rich_text("  ·  "),
+                _rich_text("GitHub", bold=True, url="https://github.com/minuum"),
+                _rich_text("  ·  "),
+                _rich_text("minwool0357@gmail.com", bold=True, url="mailto:minwool0357@gmail.com"),
+            ],
+        },
     })
 
     for sec in payload.get("sections", []):
@@ -98,11 +113,24 @@ def _build_blocks(payload: dict) -> list[dict]:
             })
         if body:
             for line in [ln.strip() for ln in body.split("\n") if ln.strip()]:
-                blocks.append({
-                    "object": "block",
-                    "type": "paragraph",
-                    "paragraph": {"rich_text": [_rich_text(line)]},
-                })
+                if line.startswith(("- ", "• ", "* ")):
+                    txt = line[2:].strip()
+                    if ":" in txt and len(txt.split(":", 1)[0]) <= 18:
+                        k, v = txt.split(":", 1)
+                        rt = [_rich_text(k + ":", bold=True), _rich_text(v)]
+                    else:
+                        rt = [_rich_text(txt)]
+                    blocks.append({
+                        "object": "block",
+                        "type": "bulleted_list_item",
+                        "bulleted_list_item": {"rich_text": rt},
+                    })
+                else:
+                    blocks.append({
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {"rich_text": [_rich_text(line)]},
+                    })
         if img_url.startswith("https://"):
             blocks.append({
                 "object": "block",
@@ -175,13 +203,31 @@ def _list_accessible_pages(token: str) -> list[dict]:
     return pages
 
 
+def _clear_page_blocks(token: str, pid: str) -> int:
+    """대상 페이지의 기존 최상위 블록을 모두 아카이브(삭제)해 중복을 없앤다."""
+    deleted = 0
+    cursor = None
+    while True:
+        q = f"/blocks/{pid}/children?page_size=100" + (f"&start_cursor={cursor}" if cursor else "")
+        res = _notion_request("GET", q, token)
+        for blk in res.get("results", []):
+            bid = blk.get("id")
+            if bid:
+                _notion_request("DELETE", f"/blocks/{bid}", token)
+                deleted += 1
+        if not res.get("has_more"):
+            break
+        cursor = res.get("next_cursor")
+    return deleted
+
+
 def _deploy_to_notion(token: str, page_id: str, payload: dict) -> dict:
     pid = _normalize_page_id(page_id)
     blocks = _build_blocks(payload)
-    mode = payload.get("mode", "append")
+    mode = payload.get("mode", "replace")
 
     if mode == "new_subpage":
-        title = str(payload.get("doc_title") or "이민우 연구 포트폴리오").strip()
+        title = str(payload.get("doc_title") or "Minwoo Lee | Robotics & AI Portfolio").strip()
         created = _notion_request(
             "POST",
             "/pages",
@@ -192,11 +238,15 @@ def _deploy_to_notion(token: str, page_id: str, payload: dict) -> dict:
                 "children": blocks[:95],
             },
         )
-        return {"ok": True, "url": created.get("url", ""), "blocks_added": len(blocks)}
+        return {"ok": True, "url": created.get("url", ""), "blocks_added": len(blocks), "mode": mode}
+
+    deleted = 0
+    if mode == "replace":
+        deleted = _clear_page_blocks(token, pid)
 
     _notion_request("PATCH", f"/blocks/{pid}/children", token, {"children": blocks[:95]})
     page_info = _notion_request("GET", f"/pages/{pid}", token)
-    return {"ok": True, "url": page_info.get("url", ""), "blocks_added": len(blocks)}
+    return {"ok": True, "url": page_info.get("url", ""), "blocks_added": len(blocks), "blocks_deleted": deleted, "mode": mode}
 
 
 class UnifiedHandler(SimpleHTTPRequestHandler):
