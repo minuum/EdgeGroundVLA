@@ -214,22 +214,27 @@ def _mini_icon(kind: str, x: float, y: float, col: str) -> str:
     return ""
 
 
-def _arch_box(x: float, y: float, w: float, h: float, title: str, sub: str, spec: str, frozen: bool, col: str, icon_kind: str = "") -> str:
-    """3줄 고밀도 아키텍처 모듈 박스 (제목 + 핵심 구조 + Mono 텐서/파라미터 스펙)."""
+def _arch_box(x: float, y: float, w: float, h: float, title: str, data_ex: str, sub: str, frozen: bool, col: str, icon_kind: str = "") -> str:
+    """3단 고밀도 아키텍처 박스: [제목] -> [실제 값/데이터 구조 코드 칩] -> [간단 설명]."""
     bg = "#F3F4F6" if frozen else "#FFFFFF"
     stroke = "#9CA3AF" if frozen else col
     sw = "1.0" if frozen else "1.4"
     tc = "#374151" if frozen else "#111827"
-    sc = "#4B5563" if frozen else col
+    sc = "#6B7280" if frozen else "#4B5563"
+    chip_bg = "#E5E7EB" if frozen else "#F8FAFC"
+    chip_fg = "#1F2937" if frozen else col
+    chip_bd = "#D1D5DB" if frozen else "#E2E8F0"
     status_icon = _lock_icon(x + w - 13, y + 5) if frozen else _train_icon(x + w - 13, y + 5, col)
-    left_icon = _mini_icon(icon_kind, x + 8, y + (h - 20) / 2, col) if icon_kind else ""
-    tx = x + (37 if icon_kind else 8)
+    left_icon = _mini_icon(icon_kind, x + 7, y + (h - 20) / 2, col) if icon_kind else ""
+    tx = x + (35 if icon_kind else 8)
+    cw = w - (42 if icon_kind else 16)
     return (
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="2" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>'
         f'{left_icon}{status_icon}'
-        f'<text x="{tx}" y="{y + 18}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{tc}">{html.escape(title)}</text>'
-        f'<text x="{tx}" y="{y + 33}" font-family="{PUB_FONT}" font-size="8.4" fill="{sc}">{html.escape(sub)}</text>'
-        f'<text x="{tx}" y="{y + 49}" font-family="{PUB_MONO}" font-size="7.8" fill="#6B7280">{html.escape(spec)}</text>'
+        f'<text x="{tx}" y="{y + 16}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{tc}">{html.escape(title)}</text>'
+        f'<rect x="{tx}" y="{y + 21}" width="{cw}" height="17" rx="2" fill="{chip_bg}" stroke="{chip_bd}" stroke-width="0.7"/>'
+        f'<text x="{tx + 4}" y="{y + 32.5}" font-family="{PUB_MONO}" font-size="7.5" font-weight="700" fill="{chip_fg}">{html.escape(data_ex)}</text>'
+        f'<text x="{tx}" y="{y + 51}" font-family="{PUB_FONT}" font-size="8.0" fill="{sc}">{html.escape(sub)}</text>'
     )
 
 
@@ -379,41 +384,41 @@ def build_01_profile_roadmap() -> None:
         f'<text x="36" y="{r1y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
         _input_thumb(r1y, "inG1", "basket only"),
         _arrow(226, r1y + 30, 248),
-        _arch_box(250, r1y, 206, bh, "OWLv2 + Kosmos-2", "Dual Frozen Vision Enc.", "458M · 962+54ms fp16", True, C1, "dual_enc"),
+        _arch_box(250, r1y, 206, bh, "OWLv2 + Kosmos-2", "box=[0.28,0.65,0.03]", "Dual Frozen (458M · 1.02s)", True, C1, "dual_enc"),
         _arrow(456, r1y + 30, 512),
         _sg_badge(484, r1y + 30),
-        _arch_box(514, r1y, 180, bh, "2D BBox + Proj.", "6-Frame History Window", "1560-d (bbox*3 + vis)", False, C1, "bbox_win"),
+        _arch_box(514, r1y, 180, bh, "2D BBox + Proj.", "x: float[6x260]=1560d", "6-Frame Window Fusion", False, C1, "bbox_win"),
         _arrow(694, r1y + 30, 718),
-        _arch_box(720, r1y, 182, bh, "Discrete MLP Head", "1560->512->128->8", "1.128M (0.25%) · <1ms", False, C1, "compass8"),
+        _arch_box(720, r1y, 182, bh, "Discrete MLP Head", "argmax(p[8]) -> cls=1", "1.128M (0.25%) · <1ms", False, C1, "compass8"),
         _arrow(902, r1y + 30, 924),
-        _output_robot(r1y, "outG1", C1, "8-Way 3-DoF", "Jetson On-Dev.", "10Hz async ctrl"),
+        _output_robot(r1y, "outG1", C1, "FORWARD", "[1.15, 0.0, 0.0]", "Jetson 10Hz ctrl"),
 
         # Row 2: EGVLA-2
         f'<text x="36" y="{r2y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C2}">EGVLA-2</text>',
         f'<text x="36" y="{r2y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
         _input_thumb(r2y, "inG2", "open-vocab"),
         _arrow(226, r2y + 30, 248),
-        _arch_box(250, r2y, 206, bh, "Florence-2 (0.23B)", "Frozen Enc + BART Dec", "beam=1 fp16 · 283ms", True, C2, "florence"),
+        _arch_box(250, r2y, 206, bh, "Florence-2 (0.23B)", "\"<loc_217><loc_540>..\"", "Frozen Enc+Dec (283ms)", True, C2, "florence"),
         _arrow(456, r2y + 30, 512),
         _sg_badge(484, r2y + 30),
-        _arch_box(514, r2y, 180, bh, "Text-Parsed <loc>", "Regex [cx,cy,a,has]", "3-win(12-d) + 768-d", True, C2, "text_parse"),
+        _arch_box(514, r2y, 180, bh, "Text-Parsed <loc>", "b=[0.28,0.65,0.03,1]", "Regex 3-win(12d)+768d", True, C2, "text_parse"),
         _arrow(694, r2y + 30, 718),
-        _arch_box(720, r2y, 182, bh, "Flow-Matching Head", "PiZeroFM + 50% Swap", "K=8 steps · H=8 chunk", False, C2, "flow_traj"),
+        _arch_box(720, r2y, 182, bh, "Flow-Matching Head", "a: float[8x2] (K=8)", "PiZeroFM + 50% Swap", False, C2, "flow_traj"),
         _arrow(902, r2y + 30, 924),
-        _output_robot(r2y, "outG2", C2, "Cont. [vx,vy]", "+ S2 Decel", "Real 397ms · 0c"),
+        _output_robot(r2y, "outG2", C2, "[0.64, -0.32]", "-26.4 deg + S2", "Real 397ms · 0c"),
 
         # Row 3: EGVLA-3
         f'<text x="36" y="{r3y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C3}">EGVLA-3</text>',
         f'<text x="36" y="{r3y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">End-to-End</text>',
         _input_thumb(r3y, "inG3", "open-vocab"),
         _arrow(226, r3y + 30, 248),
-        _arch_box(250, r3y, 206, bh, "Florence-2 (LoRA)", "Prefix-Forced KV-Cache", "Adapted 6L BART Dec", False, C3, "florence_lora"),
+        _arch_box(250, r3y, 206, bh, "Florence-2 (LoRA)", "z: float[4x1000] logit", "Prefix-Forced KV-Cache", False, C3, "florence_lora"),
         _arrow(456, r3y + 30, 512, C3, "logits"),
-        _arch_box(514, r3y, 180, bh, "Soft-Loc (Expected)", "Softmax <loc_0~999>", "0% Parse · 4-step E[u]", False, C3, "softloc_dist"),
+        _arch_box(514, r3y, 180, bh, "Soft-Loc (Expected)", "u=sum(softmax(z)*i/1k)", "0% Parse · Diff. BBox", False, C3, "softloc_dist"),
         _arrow(694, r3y + 30, 718, C3, "feat"),
-        _arch_box(720, r3y, 182, bh, "Flow-Matching Head", "PiZeroFM (Joint + KL)", "K=8 steps · H=8 chunk", False, C3, "flow_traj"),
+        _arch_box(720, r3y, 182, bh, "Flow-Matching Head", "a: float[8x2] (Joint)", "PiZeroFM + KL Reg.", False, C3, "flow_traj"),
         _arrow(902, r3y + 30, 924, C3),
-        _output_robot(r3y, "outG3", C3, "Cont. [vx,vy]", "End-to-End VLA", "GB10 297ms"),
+        _output_robot(r3y, "outG3", C3, "[0.59, -0.32]", "-28.8 deg E2E", "GB10 297ms"),
 
         # Gradient Backprop Arc
         f'<path d="M 811,{r3y + bh} L 811,{r3y + bh + 20} L 353,{r3y + bh + 20} L 353,{r3y + bh + 3}" fill="none" stroke="{C3}" stroke-width="1.5" stroke-dasharray="4 2.5" marker-end="url(#gradArr)"/>',
