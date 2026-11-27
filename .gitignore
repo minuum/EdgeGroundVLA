@@ -223,3 +223,6 @@ docs/*.png
 data/fallback_verify_frames/
 data/fallback_verify_labeled/
 .arxiv_papers/
+
+# Local Notion API credentials (never commit)
+.env.notion

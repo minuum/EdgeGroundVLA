@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <marker id="arrGray" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,1 L7,4 L0,7 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arrBlue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,1 L7,4 L0,7 Z" fill="#2563eb"/>
+    </marker>
+    
+  </defs>
+  <rect x="1" y="1" width="1098" height="518" rx="18" fill="url(#bgGrad)" stroke="#cbd5e1" stroke-width="1.5"/>
+  
+    <!-- 헤더 -->
+    <rect x="28" y="24" width="170" height="24" rx="12" fill="#dbeafe"/>
+    <text x="113" y="40" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#1d4ed8">FLAGSHIP RESEARCH</text>
+    <text x="210" y="41" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="12.5" font-weight="700" fill="#475569">EdgeGround-VLA v1 (On-Device 경량화) → v2 (미학습 다물체 일반화 · 무충돌 고속 제어)</text>
+    <text x="28" y="76" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="22" font-weight="700" fill="#0f172a">아키텍처 진화 및 실기(Real-Robot) 정량 성과 비교</text>
+
+    <!-- 좌측: 아키텍처 비교 패널 -->
+    <rect x="28" y="96" width="516" height="398" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="46" y="124" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="14" font-weight="700" fill="#0f172a">A. 경량 정책 파이프라인 진화 (Frozen VLM + Lightweight Policy)</text>
+
+    <!-- v1 블록 -->
+    <rect x="44" y="140" width="484" height="152" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+    <rect x="56" y="150" width="124" height="22" rx="11" fill="#2563eb"/>
+    <text x="118" y="165" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#ffffff">EGVLA 1 (JKSCI)</text>
+    <text x="192" y="165" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#334155">1.128M / 459M 학습 (0.25%) · 10Hz 비동기 + Jitter Hold</text>
+
+    <rect x="56" y="184" width="136" height="58" rx="9" fill="#e2e8f0" stroke="#94a3b8"/>
+    <text x="124" y="207" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#0f172a">OWLv2 + Kosmos-2</text>
+    <text x="124" y="226" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#475569">Dual Frozen Encoders</text>
+
+    <line x1="192" y1="213" x2="216" y2="213" stroke="#2563eb" stroke-width="2" marker-end="url(#arrBlue)"/>
+
+    <rect x="220" y="184" width="136" height="58" rx="9" fill="#dbeafe" stroke="#60a5fa"/>
+    <text x="288" y="207" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#1e3a8a">MLP Action Head</text>
+    <text x="288" y="226" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#1d4ed8">8-Class Discrete (1.1M)</text>
+
+    <line x1="356" y1="213" x2="380" y2="213" stroke="#2563eb" stroke-width="2" marker-end="url(#arrBlue)"/>
+
+    <rect x="384" y="184" width="132" height="58" rx="9" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="450" y="207" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#0f172a">Jetson Orin NX</text>
+    <text x="450" y="226" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#475569">3-DoF Kiwi-Drive</text>
+
+    <text x="56" y="270" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" fill="#475569">✓ 지도·클라우드 없이 온디바이스 주행 입증 (훈련 100회 95.0%, 미학습 포함 300회 92.0%)</text>
+
+    <!-- v2 블록 -->
+    <rect x="44" y="308" width="484" height="170" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+    <rect x="56" y="318" width="146" height="22" rx="11" fill="#059669"/>
+    <text x="129" y="333" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#ffffff">EGVLA 2 (MOD-DR-Safe)</text>
+    <text x="214" y="333" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#065f46">연속 Flow Matching + 기하 정합 + 2.09× 고속 서빙</text>
+
+    <rect x="56" y="352" width="136" height="62" rx="9" fill="#dcfce7" stroke="#4ade80"/>
+    <text x="124" y="375" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#064e3b">Florence-2 Grounding</text>
+    <text x="124" y="393" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#047857">beam=1 fp16 (285ms)</text>
+    <text x="124" y="407" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="9.5" fill="#065f46">Open-Vocab BBox + Vis</text>
+
+    <line x1="192" y1="383" x2="216" y2="383" stroke="#059669" stroke-width="2" marker-end="url(#arrGray)"/>
+
+    <rect x="220" y="352" width="136" height="62" rx="9" fill="#d1fae5" stroke="#10b981"/>
+    <text x="288" y="375" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#064e3b">PiZeroFM Head</text>
+    <text x="288" y="393" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#047857">50% Swap + Area 정합</text>
+    <text x="288" y="407" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="9.5" fill="#065f46">연속 2D 속도 청크 출력</text>
+
+    <line x1="356" y1="383" x2="380" y2="383" stroke="#059669" stroke-width="2" marker-end="url(#arrGray)"/>
+
+    <rect x="384" y="352" width="132" height="62" rx="9" fill="#ecfdf5" stroke="#34d399"/>
+    <text x="450" y="375" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11.5" font-weight="700" fill="#064e3b">S2 Safe Controller</text>
+    <text x="450" y="393" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#047857">연속 감속 + 스파이크 필터</text>
+    <text x="450" y="407" text-anchor="middle" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="9.5" fill="#065f46">실기 접촉 0건 달성</text>
+
+    <text x="56" y="440" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#065f46">✓ 바구니만 학습하고도 미학습 의자 15/15 포함 실기 45/45 (접촉 0건) · 방향 오차 0.54°</text>
+    <text x="56" y="460" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10.5" fill="#047857">✓ 언어 게이트(V4R): 비목표 지시어 입력 시 99.5% 제자리 정지</text>
+
+    <!-- 우측: 핵심 정량 성과 카드 + 비교 바 차트 -->
+    <rect x="560" y="96" width="512" height="398" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="578" y="124" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="14" font-weight="700" fill="#0f172a">B. 실기 검증 정량 지표 (Real-Robot Benchmarks)</text>
+
+    <!-- 2x2 KPI 카드 -->
+    <rect x="578" y="140" width="232" height="82" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="592" y="160" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#1d4ed8">EGVLA 1 · 훈련/미학습 위치</text>
+    <text x="592" y="191" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="24" font-weight="700" fill="#0f172a">95.0% / 92.0%</text>
+    <text x="592" y="211" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10.5" fill="#475569">95/100 (훈련) · 276/300 (미학습 포함)</text>
+
+    <rect x="822" y="140" width="232" height="82" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="836" y="160" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#047857">EGVLA 2 · 미학습 물체 실기</text>
+    <text x="836" y="191" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="24" font-weight="700" fill="#0f172a">45/45 · 접촉 0건</text>
+    <text x="836" y="211" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10.5" fill="#475569">바구니 30/30 + 미학습 의자 15/15 (11/25)</text>
+
+    <rect x="578" y="232" width="232" height="74" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="592" y="252" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#334155">추론 서빙 지연 (End-to-End)</text>
+    <text x="592" y="280" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="20" font-weight="700" fill="#059669">591ms → 285ms</text>
+    <text x="592" y="297" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10.5" fill="#475569">2.09× 가속 · beam=3 대비 99.7% 일치</text>
+
+    <rect x="822" y="232" width="232" height="74" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="836" y="252" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#334155">조향 정합 · 파라미터 효율</text>
+    <text x="836" y="280" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="20" font-weight="700" fill="#2563eb">0.54° · 0.25%</text>
+    <text x="836" y="297" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10.5" fill="#475569">핸들 각도 차 1° 미만 · 1.128M/459M</text>
+
+    <!-- 하단 바 차트 -->
+    <text x="578" y="334" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="12" font-weight="700" fill="#334155">실기 주요 지표 비교 (Baseline vs Proposed)</text>
+
+    <!-- Bar 1: 미학습 의자 정중앙 출발 -->
+    <text x="578" y="358" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" fill="#475569">의자 중앙 출발</text>
+    <rect x="688" y="346" width="290" height="16" rx="4" fill="#f1f5f9"/>
+    <rect x="688" y="346" width="290" height="16" rx="4" fill="url(#greenGrad)"/>
+    <text x="986" y="358" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#047857">0% → 100%</text>
+
+    <!-- Bar 2: 근접 무충돌 정지 (의자) -->
+    <text x="578" y="388" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" fill="#475569">의자 근접 정지</text>
+    <rect x="688" y="376" width="290" height="16" rx="4" fill="#f1f5f9"/>
+    <rect x="688" y="376" width="81" height="16" rx="4" fill="#fb923c"/>
+    <rect x="688" y="376" width="270" height="16" rx="4" fill="url(#greenGrad)" fill-opacity="0.88"/>
+    <text x="986" y="388" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#047857">28% → 93%</text>
+
+    <!-- Bar 3: 비목표 지시어 안전 차단 -->
+    <text x="578" y="418" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" fill="#475569">부정 명령 정지</text>
+    <rect x="688" y="406" width="290" height="16" rx="4" fill="#f1f5f9"/>
+    <rect x="688" y="406" width="288" height="16" rx="4" fill="url(#blueGrad)"/>
+    <text x="986" y="418" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#1d4ed8">99.5% (V4R)</text>
+
+    <!-- Bar 4: 추론 지연 단축 -->
+    <text x="578" y="448" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" fill="#475569">추론 지연(ms)</text>
+    <rect x="688" y="436" width="290" height="16" rx="4" fill="#fee2e2"/>
+    <rect x="688" y="436" width="140" height="16" rx="4" fill="url(#purpleGrad)"/>
+    <text x="986" y="448" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="11" font-weight="700" fill="#6d28d9">285ms (-52%)</text>
+
+    <text x="578" y="478" font-family="NanumBarunGothic, Noto Sans CJK KR, sans-serif" font-size="10" fill="#64748b">* 모든 실기 지표는 Jetson Orin NX + Serbot 2 실환경 주행 로그(.h5 / session JSON) 기준</text>
+    
+</svg>

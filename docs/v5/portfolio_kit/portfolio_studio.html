@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>이민우 (Minwoo Lee) — 연구 포트폴리오 편집 &amp; 노션 배포 스튜디오</title>
+<style>
+  :root{
+    --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --mut:#475569; --line:#e2e8f0;
+    --acc:#2563eb; --acc-soft:#eff6ff; --ok:#059669; --ok-soft:#ecfdf5;
+    --purp:#7c3aed; --warn:#d97706;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif}
+  .toolbar{
+    position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:10px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .brand{font-weight:800;font-size:.95rem;color:var(--ink);margin-right:auto;display:flex;align-items:center;gap:8px}
+  .badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--acc-soft);color:var(--acc)}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:9px;
+    font:700 .82rem/1 inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;
+  }
+  .btn:hover{border-color:#94a3b8;background:#f1f5f9}
+  .btn-primary{background:var(--acc);border-color:var(--acc);color:#fff}
+  .btn-primary:hover{background:#1d4ed8}
+  .btn-notion{background:#0f172a;border-color:#0f172a;color:#fff}
+  .btn-notion:hover{background:#1e293b}
+  .btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+  .btn-ok:hover{background:#047857}
+
+  main{max-width:960px;margin:24px auto 90px;padding:0 18px}
+  .hint-bar{
+    background:var(--acc-soft);border:1px solid #bfdbfe;border-radius:12px;padding:11px 15px;
+    font-size:.84rem;color:#1e3a8a;margin-bottom:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .sec-card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:18px;
+    box-shadow:0 2px 10px rgba(15,23,42,.03);transition:.15s;
+  }
+  .sec-card.disabled{opacity:.45;border-style:dashed}
+  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .sec-toggle{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:var(--mut);cursor:pointer;user-select:none}
+  .sec-title{
+    margin:0;font-size:1.22rem;font-weight:800;color:var(--ink);flex:1;min-width:220px;
+    padding:3px 6px;border-radius:6px;border:1px solid transparent;
+  }
+  .sec-title:hover,.sec-body:hover,.detail-edit:hover{border-color:#cbd5e1;background:#f8fafc}
+  .sec-title:focus,.sec-body:focus,.detail-edit:focus{outline:none;border-color:var(--acc);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .sec-body{
+    margin:0 0 14px;font-size:.95rem;color:#334155;white-space:pre-wrap;
+    padding:8px 10px;border-radius:8px;border:1px solid transparent;line-height:1.72;
+  }
+  .img-box{
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f8fafc;position:relative;
+  }
+  .img-box img{width:100%;height:auto;display:block}
+  .img-foot{
+    display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:#f1f5f9;
+    font-size:.76rem;color:var(--mut);gap:8px;flex-wrap:wrap;
+  }
+  .img-foot a{color:var(--acc);font-weight:700;text-decoration:none}
+  .img-foot a:hover{text-decoration:underline}
+
+  details.more-box{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-top:20px;
+  }
+  details.more-box summary{font-weight:800;font-size:1rem;cursor:pointer;color:var(--ink)}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-top:14px}
+  .detail-panel{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .detail-panel h4{margin:0 0 8px;font-size:.9rem;color:var(--acc)}
+  .detail-edit{
+    margin:0;padding:6px 8px;border-radius:6px;border:1px solid transparent;
+    font-size:.85rem;color:#334155;white-space:pre-wrap;line-height:1.65;
+  }
+
+  /* 모달 */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:80;display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    background:#fff;border-radius:16px;max-width:540px;width:100%;padding:22px 24px;
+    box-shadow:0 20px 50px rgba(15,23,42,.25);
+  }
+  .modal h3{margin:0 0 8px;font-size:1.12rem}
+  .modal p{margin:0 0 12px;font-size:.85rem;color:var(--mut);line-height:1.6}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:.8rem;font-weight:700;margin-bottom:4px;color:var(--ink)}
+  .field input,.field select{
+    width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font:14px inherit;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .status-msg{font-size:.82rem;margin-top:10px;padding:9px 12px;border-radius:8px;display:none}
+  .status-msg.ok{display:block;background:var(--ok-soft);color:#065f46;border:1px solid #a7f3d0}
+  .status-msg.err{display:block;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+  .toast{
+    position:fixed;bottom:22px;right:22px;z-index:90;background:#0f172a;color:#fff;padding:11px 16px;
+    border-radius:10px;font-size:.84rem;font-weight:700;box-shadow:0 10px 25px rgba(0,0,0,.22);display:none;
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="brand">
+    <span>✨ 연구 포트폴리오 편집 스튜디오</span>
+    <span class="badge">클릭해서 바로 수정</span>
+  </div>
+  <button class="btn btn-primary" id="btnCopyNotion" title="노션 페이지에 Ctrl+V만 하면 텍스트와 이미지가 그대로 들어갑니다">📋 노션용 그대로 복사 (Ctrl+V)</button>
+  <button class="btn" id="btnDownloadMd">⬇️ 노션 Import용 .md 저장</button>
+  <button class="btn btn-notion" id="btnOpenNotionModal">🚀 Notion API 원클릭 배포</button>
+  <button class="btn" id="btnReset">↺ 기본값 복원</button>
+</div>
+
+<main>
+  <div class="hint-bar">
+    <div>💡 <b>사용법:</b> 아래 소제목·본문을 클릭해 원하는 대로 수정하세요(자동 저장). 수정 후 상단 <b>[📋 노션용 그대로 복사]</b>를 눌러 노션에 붙여넣거나, <b>[🚀 Notion API 원클릭 배포]</b>로 바로 반영할 수 있습니다.</div>
+    <div id="saveBadge" style="font-weight:700;color:#059669">✓ 저장됨</div>
+  </div>
+
+  <div id="sectionsContainer"></div>
+
+  <details class="more-box" open>
+    <summary>세부 논문 · 프로젝트 · 수상 · 기술 스택 보기 (노션 토글 블록으로 배포됨)</summary>
+    <div class="detail-grid" id="detailsContainer"></div>
+  </details>
+</main>
+
+<!-- Notion API 배포 모달 (내 서버 전용 인증) -->
+<div class="modal-bg" id="notionModal">
+  <div class="modal">
+    <h3>🚀 내 노션에 원클릭 배포 (서버 전용 인증)</h3>
+    <p>
+      토큰은 브라우저에 입력하지 않고 <b>내 서버(<code>127.0.0.1:8788</code>)의 로컬 설정(<code>.env.notion</code>)</b>에서만 안전하게 읽습니다.
+    </p>
+    <div id="serverAuthStatus" class="status-msg ok" style="display:block;margin-bottom:12px">⏳ 내 서버 Notion 연결 확인 중...</div>
+    <div class="field">
+      <label>내 노션 대상 페이지 선택 (연결된 페이지 자동 조회)</label>
+      <select id="notionPageSelect">
+        <option value="">연결된 페이지 불러오는 중...</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>또는 대상 페이지 URL / ID 직접 지정 (선택)</label>
+      <input type="text" id="notionPageId" placeholder="위 드롭다운 선택 시 비워두세요">
+    </div>
+    <div class="field">
+      <label>배포 방식</label>
+      <select id="notionMode">
+        <option value="append">기존 페이지 하단에 블록 추가 (Append)</option>
+        <option value="new_subpage">지정 페이지 아래에 새 하위 페이지 생성</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>이미지 공개 베이스 URL (GitHub Pages)</label>
+      <input type="text" id="imgBaseUrl" value="https://minuum.github.io/EdgeGroundVLA/v5/portfolio_kit">
+    </div>
+    <div id="deployStatus" class="status-msg"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btnRefreshPages">🔄 연결 다시 확인</button>
+      <button class="btn" id="btnCloseModal">닫기</button>
+      <button class="btn btn-ok" id="btnRunDeploy">지금 내 노션에 배포하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = "minwoo_portfolio_studio_v1";
+const DEFAULT_IMG_BASE = "https://minuum.github.io/EdgeGroundVLA/v5/portfolio_kit";
+const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:8001/api/notion" : "/api/notion";
+
+const DEFAULT_DATA = {
+  doc_title: "이민우 (Minwoo Lee) — 연구 포트폴리오",
+  sections: [
+    {
+      id: "sec1",
+      enabled: true,
+      heading: "1. 프로필 및 목표",
+      body: "강남대 AI 4학년 이민우(GPA 4.27/4.5, 2027.02 졸업 예정). 2027-1 인턴 및 2027-2 석박통합 진학을 목표로 온디바이스 로봇 정책(VLA)·미학습 일반화·배포 시점 오케스트레이션을 연구합니다.",
+      img: "01_profile_roadmap.png",
+      imgCaption: "Serbot 2 + Jetson Orin NX 테스트베드 및 EGVLA 1→2→3 연구 진화 로드맵"
+    },
+    {
+      id: "sec2",
+      enabled: true,
+      heading: "2. 대표 연구 · EdgeGround-VLA (v1 → v2)",
+      body: "v1에서는 OWLv2·Kosmos-2와 경량 헤드(1.128M/459M, 0.25%)를 Jetson Orin NX에 올려 훈련 100회 95.0%, 미학습 포함 300회 92.0%를 달성했습니다.\nv2에서는 Florence-2 + Flow Matching(PiZeroFM)과 beam=1 fp16 가속(591ms→285ms, 2.09×)으로 확장해, 바구니만 학습하고도 미학습 의자 15/15 포함 실기 45/45·접촉 0건을 입증했습니다.",
+      img: "02_edgeground_vla_v1_v2.png",
+      imgCaption: "EdgeGround-VLA v1→v2 아키텍처 진화 및 실기 정량 성과 비교"
+    },
+    {
+      id: "sec3",
+      enabled: true,
+      heading: "3. 핵심 연구 질문 · 시각 지름길 규명과 공간 병목",
+      body: "실기 오류 630건 중 81.4%가 대체 가능 행동이었던 발견에서 출발해, 저데이터 VLA가 외형 지름길(Visual Shortcut)에 의존하는 한계를 반사실 시각 셔플 감사로 규명했습니다.\n50% Feature Swap과 기하 정합으로 셔플 정지 뒤집힘을 27.4%→0.0%로 제거했고, E2E 구조에서는 미분가능 공간 병목(Soft-Loc)이 미학습 의자 정지를 18.6%→100%로 끌어올림을 보였습니다.",
+      img: "03_research_question_diagnostic.png",
+      imgCaption: "실기 카메라 프레임 위 모델별 행동 벡터 오버레이 및 반사실 시각 셔플 감사 결과"
+    },
+    {
+      id: "sec4",
+      enabled: true,
+      heading: "4. 후속 연구 · EGVLA1 vs EGVLA2 공정 비교 & 바닥 접지선(y2) 정합",
+      body: "물체 크기별 정지 거리 편차를 해결하기 위해 BBox 면적 대신 바닥 접지선(y2 = cy + h/2) 기반 정지 정합(A3C_Y2)을 도입해 시뮬레이션에서 바구니 100% 정지·의자 원거리 조기정지 0%를 확인했습니다.\n현재 동일 출발(pos1~3)·도착(G6~8) 9경로·3객체(27조건) 공정 실기 프로토콜로 2차 비교 논문을 진행 중입니다.",
+      img: "04_eg1_vs_eg2_protocol_y2.png",
+      imgCaption: "공통 3×3 실기 평가 매트릭스 및 11/25 실기 도착 사진 기반 바닥 접지선(y2) 비교"
+    },
+    {
+      id: "sec5",
+      enabled: true,
+      heading: "5. 논문 · 수상 · 링크",
+      body: "JKSCI 1저자(심사 중), IPACT 2024 우수논문상(2저자), 2026-1 캡스톤 은상, 2025 강남톤 대상.\nProject Page: https://minuum.github.io/EdgeGroundVLA/\nGitHub: https://github.com/minuum\nContact: minwool0357@gmail.com | 010-6757-3689",
+      img: "05_publications_awards_stack.png",
+      imgCaption: "논문 · 수상 · 프로젝트 및 핵심 기술 스택 요약"
+    }
+  ],
+  details: [
+    {
+      title: "Publications & Manuscripts",
+      items: [
+        "EdgeGround-VLA: On-Device Goal-Directed Navigation via Dual Frozen Grounding Encoders — Minwoo Lee (1st author), Inyeop Choe. JKSCI (KCI Registered), Under Review (2026). 1.128M/459M trained, 10Hz async control + Jitter Hold on Jetson Orin NX + Serbot 2.",
+        "Designing Conversational AI Services Using RAG-Based Loneliness Analysis for Koreans — Minwoo Lee (2nd author) et al. JCCT 10(6):625–633, 2024 (IPACT 2024 Outstanding Paper Award)."
+      ]
+    },
+    {
+      title: "Projects",
+      items: [
+        "Serbot 2 Robot Platform Integration (2025.01–03): Jetson Orin Linux + ROS2 driver nodes + locomotion control stack.",
+        "Ladi (2024.10): AI Healthcare Routine Recommender (KiwiBM25 + FAISS + CrossEncoder) — Best Project Award.",
+        "Liberty (2024.05): AI Legal QA Multi-Agent System (LangGraph, PM & Lead Architect) — Excellence Award."
+      ]
+    },
+    {
+      title: "Awards & Honors",
+      items: [
+        "2026-1 Kangnam Univ. Capstone Design Competition — Silver Prize",
+        "2025 Kangnengthon Hackathon — Grand Prize (Dean of College of Engineering Award)",
+        "IPACT 2024 — Outstanding Paper Award",
+        "2024 Software Academic Festival (1st Prize) / AI Academic Festival (Excellence Award) / K-HTML Hackathon"
+      ]
+    },
+    {
+      title: "Skills",
+      items: [
+        "AI / VLA: PyTorch, HuggingFace, LoRA/PEFT, Flow Matching, Florence-2, OWLv2, Kosmos-2, SigLIP, PaliGemma2, LangGraph",
+        "Robotics: ROS2, Jetson Orin NX, Ubuntu Linux, Asynchronous Control, Git"
+      ]
+    }
+  ]
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+let state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const b = document.getElementById("saveBadge");
+  b.textContent = "✓ 자동 저장됨 (" + new Date().toLocaleTimeString() + ")";
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.display = "none"; }, 2600);
+}
+
+function render() {
+  const cont = document.getElementById("sectionsContainer");
+  cont.replaceChildren();
+
+  state.sections.forEach((sec, idx) => {
+    const card = document.createElement("section");
+    card.className = "sec-card" + (sec.enabled ? "" : " disabled");
+
+    const head = document.createElement("div");
+    head.className = "sec-head";
+
+    const h2 = document.createElement("h2");
+    h2.className = "sec-title";
+    h2.contentEditable = "true";
+    h2.textContent = sec.heading;
+    h2.addEventListener("input", () => { state.sections[idx].heading = h2.textContent.trim(); saveState(); });
+
+    const lbl = document.createElement("label");
+    lbl.className = "sec-toggle";
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = sec.enabled;
+    chk.addEventListener("change", () => {
+      state.sections[idx].enabled = chk.checked;
+      card.classList.toggle("disabled", !chk.checked);
+      saveState();
+    });
+    lbl.append(chk, document.createTextNode("노션 배포 포함"));
+    head.append(h2, lbl);
+
+    const body = document.createElement("div");
+    body.className = "sec-body";
+    body.contentEditable = "true";
+    body.textContent = sec.body;
+    body.addEventListener("input", () => { state.sections[idx].body = body.innerText.trim(); saveState(); });
+
+    const imgBox = document.createElement("div");
+    imgBox.className = "img-box";
+    const img = document.createElement("img");
+    img.src = sec.img;
+    img.alt = sec.imgCaption;
+
+    const foot = document.createElement("div");
+    foot.className = "img-foot";
+    const cap = document.createElement("span");
+    cap.textContent = "🖼️ " + sec.imgCaption;
+    const dl = document.createElement("a");
+    dl.href = sec.img;
+    dl.download = sec.img;
+    dl.textContent = "고해상도 PNG 저장 ⬇";
+    foot.append(cap, dl);
+    imgBox.append(img, foot);
+
+    card.append(head, body, imgBox);
+    cont.append(card);
+  });
+
+  const dCont = document.getElementById("detailsContainer");
+  dCont.replaceChildren();
+  state.details.forEach((grp, gIdx) => {
+    const panel = document.createElement("div");
+    panel.className = "detail-panel";
+    const h4 = document.createElement("h4");
+    h4.textContent = grp.title;
+    const ed = document.createElement("div");
+    ed.className = "detail-edit";
+    ed.contentEditable = "true";
+    ed.textContent = grp.items.map(x => "- " + x).join("\n");
+    ed.addEventListener("input", () => {
+      state.details[gIdx].items = ed.innerText.split("\n").map(s => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+      saveState();
+    });
+    panel.append(h4, ed);
+    dCont.append(panel);
+  });
+}
+
+function buildMarkdown(imgBase) {
+  const base = (imgBase || DEFAULT_IMG_BASE).replace(/\/$/, "");
+  const lines = ["# " + state.doc_title, ""];
+  state.sections.forEach(sec => {
+    if (!sec.enabled) return;
+    lines.push("## " + sec.heading, "");
+    lines.push(sec.body, "");
+    lines.push(`![${sec.imgCaption}](${base}/${sec.img})`, "");
+    lines.push("---", "");
+  });
+  lines.push("<details>", "<summary><b>세부 논문 · 프로젝트 · 수상 · 기술 스택 보기</b></summary>", "");
+  state.details.forEach(grp => {
+    lines.push("### " + grp.title);
+    grp.items.forEach(it => lines.push("- " + it));
+    lines.push("");
+  });
+  lines.push("</details>", "");
+  return lines.join("\n");
+}
+
+document.getElementById("btnCopyNotion").addEventListener("click", async () => {
+  const md = buildMarkdown(document.getElementById("imgBaseUrl").value);
+  try {
+    await navigator.clipboard.writeText(md);
+    showToast("✅ 노션용 마크다운(이미지 포함) 복사 완료! 노션에서 Ctrl+V 하세요.");
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = md;
+    document.body.append(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    showToast("✅ 클립보드에 복사되었습니다! 노션에서 Ctrl+V 하세요.");
+  }
+});
+
+document.getElementById("btnDownloadMd").addEventListener("click", () => {
+  const md = buildMarkdown(document.getElementById("imgBaseUrl").value);
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "minwoo_research_portfolio_notion.md";
+  a.click();
+  showToast("⬇️ 노션 Import용 .md 파일을 저장했습니다.");
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  if (!confirm("수정 내용을 모두 기본값으로 되돌릴까요?")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  saveState();
+  render();
+  showToast("↺ 기본값으로 복원되었습니다.");
+});
+
+// 모달 제어 및 내 서버 연결 페이지 자동 조회
+const modal = document.getElementById("notionModal");
+async function loadServerPages() {
+  const authBox = document.getElementById("serverAuthStatus");
+  const sel = document.getElementById("notionPageSelect");
+  authBox.className = "status-msg ok";
+  authBox.style.display = "block";
+  authBox.textContent = "⏳ 내 서버 Notion 연결 확인 중...";
+  sel.replaceChildren();
+  try {
+    const resp = await fetch(`${API_BASE}/pages`);
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || "연결 실패");
+    authBox.className = "status-msg ok";
+    authBox.textContent = `🟢 내 서버 Notion 연결 완료 (인증 출처: ${data.token_source}, 연결 페이지 ${data.pages.length}개)`;
+    if (data.pages.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "연결된 페이지 없음 (노션 페이지 우측상단 ··· → 연결 추가 필요)";
+      sel.append(opt);
+    } else {
+      data.pages.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.title} (${p.id.slice(0, 8)}...)`;
+        if (data.default_page_id && data.default_page_id.replace(/-/g, "").includes(p.id.replace(/-/g, ""))) {
+          opt.selected = true;
+        }
+        sel.append(opt);
+      });
+    }
+  } catch (err) {
+    authBox.className = "status-msg err";
+    authBox.textContent = "🔴 " + err.message;
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "토큰 갱신 후 [🔄 연결 다시 확인] 클릭";
+    sel.append(opt);
+  }
+}
+
+document.getElementById("btnOpenNotionModal").addEventListener("click", () => {
+  document.getElementById("deployStatus").className = "status-msg";
+  modal.classList.add("open");
+  loadServerPages();
+});
+document.getElementById("btnRefreshPages").addEventListener("click", loadServerPages);
+document.getElementById("btnCloseModal").addEventListener("click", () => modal.classList.remove("open"));
+modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("open"); });
+
+document.getElementById("btnRunDeploy").addEventListener("click", async () => {
+  const st = document.getElementById("deployStatus");
+  st.className = "status-msg ok";
+  st.textContent = "⏳ 내 서버를 통해 Notion으로 배포 중...";
+
+  const base = document.getElementById("imgBaseUrl").value.replace(/\/$/, "");
+  const selectedPage = document.getElementById("notionPageId").value.trim() || document.getElementById("notionPageSelect").value;
+  const payload = {
+    page_id: selectedPage,
+    mode: document.getElementById("notionMode").value,
+    doc_title: state.doc_title,
+    sections: state.sections.map(s => ({
+      enabled: s.enabled,
+      heading: s.heading,
+      body: s.body,
+      image_url: `${base}/${s.img}`
+    })),
+    details: state.details
+  };
+
+  try {
+    const resp = await fetch(`${API_BASE}/deploy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.error || "배포 실패");
+    st.className = "status-msg ok";
+    st.textContent = `✅ 내 노션 배포 완료! (${data.blocks_added}개 블록 반영)` + (data.url ? ` — ${data.url}` : "");
+  } catch (err) {
+    st.className = "status-msg err";
+    st.textContent = "❌ 오류: " + err.message;
+  }
+});
+
+render();
+</script>
+</body>
+</html>
