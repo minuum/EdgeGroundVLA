@@ -170,7 +170,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = "minwoo_portfolio_studio_v3";
+const STORAGE_KEY = "minwoo_portfolio_studio_v4";
 const DEFAULT_IMG_BASE = "https://minuum.github.io/EdgeGroundVLA/v5/portfolio_kit";
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:8001/api/notion" : "/api/notion";
 
@@ -181,10 +181,10 @@ const DEFAULT_DATA = {
     {
       id: "sec1",
       enabled: true,
-      heading: "1. Overview · EGVLA 1 → 2 → 3 세대별 사실 비교",
-      body: "- EGVLA 1 (Jetson Orin NX 단독 실기): 전체의 0.25%(1.128M/459M)만 학습해 훈련 위치 95.0%, 미학습 위치 포함 300회 92.0% 달성\n- EGVLA 2 (Serbot 2 + 추론 서버 실기): 연속 Flow Matching·안전 감속으로 미학습 의자 15회 포함 실기 45/45 성공·접촉 0건 (실기 지연 397.1ms, 배경 교체 오판율 27.4%→0.0%)\n- EGVLA 3 (GPU 오프라인 1,458프레임 검증): 문자열 파싱 없는 미분가능 공간 병목(Soft-Loc)으로 미학습 의자 정지 18.6%→100% 입증",
+      heading: "1. Overview · 동일 장면에서 본 EGVLA 1 → 2 → 3 추론 진화",
+      body: "- EGVLA 1 (Jetson Orin NX 단독 실기): OWLv2+Kosmos-2와 0.25%(1.128M/459M) MLP로 이산 8방향을 선택해 훈련 95.0%(300회 92.0%) 달성\n- EGVLA 2 (Serbot 2 + 추론 서버 실기): Florence-2 <loc> 파싱 + 연속 Flow Matching으로 좌측 -26.4° 정밀 조향, 미학습 의자 15회 포함 실기 45/45·접촉 0건 (실기 지연 397.1ms)\n- EGVLA 3 (GPU 오프라인 1,458프레임 검증): 문자열 파싱을 없앤 미분가능 Soft-Loc으로 -28.8° E2E 조향 및 미학습 의자 정지 18.6%→100% 입증",
       img: "01_profile_roadmap.png",
-      imgCaption: "EGVLA 1·2·3 세대별 아키텍처·구동 환경·검증 수치 비교 매트릭스"
+      imgCaption: "동일 실기 프레임(sc5_side_steer) 위 EGVLA 1·2·3 실제 추론 방식·출력 비교 및 세대별 사실 매트릭스"
     },
     {
       id: "sec2",

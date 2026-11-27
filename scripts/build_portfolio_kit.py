@@ -72,141 +72,209 @@ def _svg_shell(w: int, h: int, body: str, defs: str = "") -> str:
 </svg>'''
 
 
+def _draw_gen_frame(x0: float, y0: float, w: float, h: float, img_uri: str, cid: str, bbox: tuple[float, float, float], col: str, dash: str, box_lbl: str, ang_deg: float, vec_lbl: str, step_lbl: str) -> str:
+    """동일 실기 프레임 위에 세대별 추론 방식(BBox/Soft-Loc + 이산/연속 벡터)을 오버레이한다."""
+    cx, cy, area = bbox
+    side = math.sqrt(max(0.002, area))
+    bw = min(0.85, side * 1.15) * w
+    bh = min(0.85, side / 1.15) * h
+    bx = x0 + max(3.0, min(w - bw - 3.0, cx * w - bw / 2.0))
+    by = y0 + max(3.0, min(h - bh - 3.0, cy * h - bh / 2.0))
+    da = f' stroke-dasharray="{dash}"' if dash else ""
+
+    # 출발점(하단 중앙)에서 ang_deg 방향으로 벡터 표시 (음수=좌측 바구니 방향)
+    ox, oy = x0 + w * 0.5, y0 + h - 14.0
+    rad = math.radians(ang_deg)
+    length = 58.0
+    tx = ox + math.sin(rad) * length
+    ty = oy - math.cos(rad) * length
+
+    return f'''
+    <clipPath id="{cid}"><rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="9"/></clipPath>
+    <image href="{img_uri}" x="{x0}" y="{y0}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#{cid})"/>
+    <rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="9" fill="none" stroke="{col}" stroke-width="1.8"/>
+    <rect x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="none" stroke="{col}" stroke-width="2.3"{da}/>
+    <rect x="{x0+6}" y="{y0+6}" width="{w-12}" height="20" rx="5" fill="rgba(15,23,42,0.82)"/>
+    <text x="{x0+12}" y="{y0+19.5}" font-family="{FONT}" font-size="9.8" font-weight="700" fill="#f8fafc">{html.escape(step_lbl)}</text>
+    <rect x="{bx:.1f}" y="{max(y0+28, by-17):.1f}" width="116" height="15" rx="3" fill="rgba(15,23,42,0.80)"/>
+    <text x="{bx+4:.1f}" y="{max(y0+39, by-6):.1f}" font-family="{FONT}" font-size="8.8" font-weight="700" fill="{col}">{html.escape(box_lbl)}</text>
+    <line x1="{ox:.1f}" y1="{oy:.1f}" x2="{tx:.1f}" y2="{ty:.1f}" stroke="{col}" stroke-width="3.6" stroke-linecap="round"/>
+    <circle cx="{tx:.1f}" cy="{ty:.1f}" r="4.2" fill="{col}"/>
+    <rect x="{x0+6}" y="{y0+h-25}" width="{w-12}" height="19" rx="5" fill="rgba(15,23,42,0.84)"/>
+    <text x="{x0+w/2}" y="{y0+h-12}" text-anchor="middle" font-family="{FONT}" font-size="9.8" font-weight="700" fill="{col}">{html.escape(vec_lbl)}</text>
+    '''
+
+
 def build_01_profile_roadmap() -> None:
-    """카드 1: EGVLA 1·2·3 세대별 아키텍처·구동환경·검증수치·한계돌파 비교 매트릭스 (환각 0% 경계표)."""
-    W, H = 1100, 608
-    serbot_uri = _b64_img("docs/v5/figures/hardware_serbot_combined.png")
-    defs = '<clipPath id="clipSerbotTop"><rect x="26" y="24" width="108" height="92" rx="12"/></clipPath>'
+    """카드 1: 동일 실기 프레임 1장 위 EGVLA 1·2·3 실제 추론 비교 + 세대별 사실 매트릭스."""
+    W, H = 1100, 770
+    same_img_uri = _b64_img("docs/v5/figures/inline/99f9060660c1394c.jpg")
 
     c1, c2, c3 = 152, 466, 780
     cw = 296
 
+    # 동일 이미지(sc5_side_steer, 지시어 "go to the gray basket") 위 3세대 실측 추론 오버레이
+    f1 = _draw_gen_frame(
+        c1 + 8, 178, cw - 16, 146, same_img_uri, "clipG1",
+        (0.281, 0.645, 0.027), "#60a5fa", "",
+        "OWLv2 cx=0.281", 0.0,
+        "출력: FORWARD (0° 이산 양자화)",
+        "① OWLv2+Kosmos-2 → 8-Class MLP",
+    )
+    f2 = _draw_gen_frame(
+        c2 + 8, 178, cw - 16, 146, same_img_uri, "clipG2",
+        (0.280, 0.645, 0.030), "#34d399", "",
+        "F2 <loc> cx=0.280", -26.4,
+        "출력: [0.64, -0.32] (-26.4° 연속 조향)",
+        "② Florence-2 <loc> 파싱 → Flow Matching",
+    )
+    f3 = _draw_gen_frame(
+        c3 + 8, 178, cw - 16, 146, same_img_uri, "clipG3",
+        (0.294, 0.646, 0.023), "#c084fc", "5 3",
+        "Soft-Loc cx=0.294", -28.8,
+        "출력: [0.59, -0.32] (-28.8° 미분 E2E)",
+        "③ Softmax 기댓값(파싱 0%) → E2E",
+    )
+
     body = f'''
-    <!-- 상단 헤더: Serbot 2 썸네일 + 정체성 + 검증 단계 범례 -->
-    <rect x="24" y="22" width="112" height="96" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
-    <image href="{serbot_uri}" x="26" y="24" width="108" height="92" preserveAspectRatio="xMidYMid meet" clip-path="url(#clipSerbotTop)"/>
+    <!-- 상단 헤더 -->
+    <rect x="24" y="22" width="182" height="22" rx="11" fill="#dbeafe"/>
+    <text x="115" y="37" text-anchor="middle" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#1d4ed8">SAME-FRAME COMPARISON</text>
+    <text x="218" y="38" font-family="{FONT}" font-size="12" font-weight="700" fill="#475569">동일 실기 카메라 입력 ("go to the gray basket") → 세대별 추론 방식 및 실제 출력 비교</text>
 
-    <rect x="152" y="24" width="168" height="22" rx="11" fill="#dbeafe"/>
-    <text x="236" y="39" text-anchor="middle" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#1d4ed8">ROBOTICS &amp; VLA OVERVIEW</text>
-    <text x="332" y="40" font-family="{FONT}" font-size="12" font-weight="700" fill="#475569">실기 한계를 스스로 진단하고 3세대까지 돌파한 연구 진화</text>
+    <text x="24" y="74" font-family="{FONT}" font-size="24" font-weight="700" fill="#0f172a">Minwoo Lee (이민우) — EGVLA 1 · 2 · 3 추론 진화 및 사실 비교</text>
+    <text x="24" y="98" font-family="{FONT}" font-size="12.8" fill="#334155">같은 장면(좌측 바구니·중앙 화분·우측 의자)에서 1세대 이산 분류 → 2세대 연속 제어 → 3세대 완전 미분 E2E로 진화한 실측 결과</text>
 
-    <text x="152" y="76" font-family="{FONT}" font-size="25" font-weight="700" fill="#0f172a">Minwoo Lee (이민우) — EGVLA 1 · 2 · 3 세대별 사실 비교</text>
-    <text x="152" y="102" font-family="{FONT}" font-size="13" fill="#334155">온디바이스 경량화(1세대) → 다물체 실기 일반화·무충돌 제어(2세대) → 완전 미분 E2E 공간 병목(3세대)</text>
-
-    <rect x="758" y="22" width="152" height="24" rx="12" fill="#dcfce7" stroke="#86efac"/>
-    <text x="834" y="38" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#166534">● 실기 주행 검증 (1·2세대)</text>
-    <rect x="918" y="22" width="158" height="24" rx="12" fill="#f3e8ff" stroke="#d8b4fe"/>
-    <text x="997" y="38" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#6b21a8">● 오프라인 재생 (3세대)</text>
+    <rect x="758" y="20" width="152" height="24" rx="12" fill="#dcfce7" stroke="#86efac"/>
+    <text x="834" y="36" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#166534">● 실기 주행 검증 (1·2세대)</text>
+    <rect x="918" y="20" width="158" height="24" rx="12" fill="#f3e8ff" stroke="#d8b4fe"/>
+    <text x="997" y="36" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#6b21a8">● 오프라인 재생 (3세대)</text>
 
     <!-- 컬럼 헤더 3종 -->
-    <rect x="{c1}" y="132" width="{cw}" height="46" rx="12" fill="#1d4ed8"/>
-    <text x="{c1 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 1 (1세대)</text>
-    <text x="{c1 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#dbeafe">온디바이스 경량 · JKSCI 심사 중</text>
+    <rect x="{c1}" y="116" width="{cw}" height="46" rx="12" fill="#1d4ed8"/>
+    <text x="{c1 + cw/2}" y="137" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 1 (1세대)</text>
+    <text x="{c1 + cw/2}" y="154" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#dbeafe">온디바이스 경량 · JKSCI 심사 중</text>
 
-    <rect x="{c2}" y="132" width="{cw}" height="46" rx="12" fill="#059669"/>
-    <text x="{c2 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 2 (2세대)</text>
-    <text x="{c2 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#d1fae5">다물체 일반화·안전 · 실기 완료</text>
+    <rect x="{c2}" y="116" width="{cw}" height="46" rx="12" fill="#059669"/>
+    <text x="{c2 + cw/2}" y="137" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 2 (2세대)</text>
+    <text x="{c2 + cw/2}" y="154" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#d1fae5">다물체 일반화·안전 · 실기 완료</text>
 
-    <rect x="{c3}" y="132" width="{cw}" height="46" rx="12" fill="#7c3aed"/>
-    <text x="{c3 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 3 (3세대)</text>
-    <text x="{c3 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#ede9fe">완전 미분 E2E · 오프라인 검증</text>
+    <rect x="{c3}" y="116" width="{cw}" height="46" rx="12" fill="#7c3aed"/>
+    <text x="{c3 + cw/2}" y="137" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 3 (3세대)</text>
+    <text x="{c3 + cw/2}" y="154" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#ede9fe">완전 미분 E2E · 오프라인 검증</text>
 
-    <text x="457" y="160" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
-    <text x="771" y="160" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
+    <text x="457" y="144" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
+    <text x="771" y="144" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
+
+    <!-- ROW 0: 동일 이미지 실제 추론 비교 -->
+    <rect x="24" y="170" width="118" height="162" rx="10" fill="#0f172a"/>
+    <text x="83" y="236" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#ffffff">동일 이미지</text>
+    <text x="83" y="255" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#38bdf8">실제 추론</text>
+    <text x="83" y="276" text-anchor="middle" font-family="{FONT}" font-size="9.8" fill="#cbd5e1">"gray basket"</text>
+    <text x="83" y="292" text-anchor="middle" font-family="{FONT}" font-size="9.5" fill="#94a3b8">(좌측 cx=0.28)</text>
+
+    <rect x="{c1}" y="170" width="{cw}" height="162" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+    <rect x="{c2}" y="170" width="{cw}" height="162" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <rect x="{c3}" y="170" width="{cw}" height="162" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    {f1}
+    {f2}
+    {f3}
 
     <!-- ROW 1: 아키텍처 -->
-    <rect x="24" y="186" width="118" height="82" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="83" y="224" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">아키텍처</text>
-    <text x="83" y="242" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">VLM + Action</text>
+    <rect x="24" y="340" width="118" height="78" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="376" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">추론 구조</text>
+    <text x="83" y="394" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">VLM + Action</text>
 
-    <rect x="{c1}" y="186" width="{cw}" height="82" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
-    <text x="{c1+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e3a8a">OWLv2 + Kosmos-2 (Frozen)</text>
-    <text x="{c1+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 이산 8방향 MLP 액션 헤드</text>
-    <text x="{c1+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#1d4ed8">전체의 0.25% (1.128M / 459M) 학습</text>
+    <rect x="{c1}" y="340" width="{cw}" height="78" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="363" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#1e3a8a">OWLv2 + Kosmos-2 (Frozen)</text>
+    <text x="{c1+14}" y="383" font-family="{FONT}" font-size="11" fill="#334155">→ 이산 8방향 MLP 액션 헤드</text>
+    <text x="{c1+14}" y="403" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">전체의 0.25% (1.128M / 459M) 학습</text>
 
-    <rect x="{c2}" y="186" width="{cw}" height="82" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
-    <text x="{c2+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#064e3b">Florence-2 (&lt;loc&gt; 문자열 파싱)</text>
-    <text x="{c2+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 연속 Flow Matching (PiZeroFM)</text>
-    <text x="{c2+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#047857">비미분 2단계 모듈러 + S2 안전 감속</text>
+    <rect x="{c2}" y="340" width="{cw}" height="78" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="363" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#064e3b">Florence-2 (&lt;loc&gt; 문자열 파싱)</text>
+    <text x="{c2+14}" y="383" font-family="{FONT}" font-size="11" fill="#334155">→ 연속 Flow Matching (PiZeroFM)</text>
+    <text x="{c2+14}" y="403" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">비미분 2단계 모듈러 + S2 안전 감속</text>
 
-    <rect x="{c3}" y="186" width="{cw}" height="82" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
-    <text x="{c3+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#4c1d95">Florence-2 Soft-Loc (Softmax 기댓값)</text>
-    <text x="{c3+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 문자열 파싱 0% · Action 직결</text>
-    <text x="{c3+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#6d28d9">완전 미분 E2E (Decoder 역전파 가능)</text>
+    <rect x="{c3}" y="340" width="{cw}" height="78" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="363" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#4c1d95">Florence-2 Soft-Loc (Softmax 기댓값)</text>
+    <text x="{c3+14}" y="383" font-family="{FONT}" font-size="11" fill="#334155">→ 문자열 파싱 0% · Action 직결</text>
+    <text x="{c3+14}" y="403" font-family="{FONT}" font-size="11" font-weight="700" fill="#6d28d9">완전 미분 E2E (Decoder 역전파 가능)</text>
 
     <!-- ROW 2: 구동 환경 -->
-    <rect x="24" y="276" width="118" height="66" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="83" y="307" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">구동 환경</text>
-    <text x="83" y="325" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">실기 vs 오프라인</text>
+    <rect x="24" y="426" width="118" height="62" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="454" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">구동 환경</text>
+    <text x="83" y="472" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">실기 vs 오프라인</text>
 
-    <rect x="{c1}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
-    <text x="{c1+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#1d4ed8">Jetson Orin NX 단독 온디바이스</text>
-    <text x="{c1+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">10Hz 비동기 제어 + Jitter Hold (실기)</text>
+    <rect x="{c1}" y="426" width="{cw}" height="62" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="451" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#1d4ed8">Jetson Orin NX 단독 온디바이스</text>
+    <text x="{c1+14}" y="472" font-family="{FONT}" font-size="10.8" fill="#475569">10Hz 비동기 제어 + Jitter Hold (실기)</text>
 
-    <rect x="{c2}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
-    <text x="{c2+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#047857">Serbot 2 + 추론 서버 (GPU 실기)</text>
-    <text x="{c2+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">로봇-서버 분산 폐루프 (누적 600+회)</text>
+    <rect x="{c2}" y="426" width="{cw}" height="62" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="451" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#047857">Serbot 2 + 추론 서버 (GPU 실기)</text>
+    <text x="{c2+14}" y="472" font-family="{FONT}" font-size="10.8" fill="#475569">로봇-서버 분산 폐루프 (누적 600+회)</text>
 
-    <rect x="{c3}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
-    <text x="{c3+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#6d28d9">GPU 오프라인 재생 검증 (GB10)</text>
-    <text x="{c3+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">1,458 실기 프레임 평가 (실기 미실시)</text>
+    <rect x="{c3}" y="426" width="{cw}" height="62" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="451" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#6d28d9">GPU 오프라인 재생 검증 (GB10)</text>
+    <text x="{c3+14}" y="472" font-family="{FONT}" font-size="10.8" fill="#475569">1,458 실기 프레임 평가 (실기 미실시)</text>
 
     <!-- ROW 3: 검증 수치 -->
-    <rect x="24" y="350" width="118" height="120" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="83" y="405" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">검증 수치</text>
-    <text x="83" y="423" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">정량 근거</text>
+    <rect x="24" y="496" width="118" height="118" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="550" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">검증 수치</text>
+    <text x="83" y="568" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">정량 근거</text>
 
-    <rect x="{c1}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
-    <text x="{c1+14}" y="376" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 훈련 위치 100회: <tspan fill="#1d4ed8">95.0% (95/100)</tspan></text>
-    <text x="{c1+14}" y="400" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 미학습 포함 300회: <tspan fill="#1d4ed8">92.0% (276/300)</tspan></text>
-    <text x="{c1+14}" y="424" font-family="{FONT}" font-size="11.2" fill="#334155">• 오프라인 오류 630건 중</text>
-    <text x="{c1+24}" y="444" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#334155">81.4%가 대체 가능 행동 규명</text>
+    <rect x="{c1}" y="496" width="{cw}" height="118" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="522" font-family="{FONT}" font-size="11.6" font-weight="700" fill="#0f172a">• 훈련 위치 100회: <tspan fill="#1d4ed8">95.0% (95/100)</tspan></text>
+    <text x="{c1+14}" y="545" font-family="{FONT}" font-size="11.6" font-weight="700" fill="#0f172a">• 미학습 포함 300회: <tspan fill="#1d4ed8">92.0% (276/300)</tspan></text>
+    <text x="{c1+14}" y="568" font-family="{FONT}" font-size="11" fill="#334155">• 오프라인 오류 630건 중</text>
+    <text x="{c1+24}" y="588" font-family="{FONT}" font-size="11" font-weight="700" fill="#334155">81.4%가 대체 가능 행동 규명</text>
 
-    <rect x="{c2}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
-    <text x="{c2+14}" y="374" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 11/25 실기: <tspan fill="#047857">45/45 성공 · 접촉 0건</tspan></text>
-    <text x="{c2+24}" y="392" font-family="{FONT}" font-size="10.2" fill="#64748b">(바구니 30 + 미학습 의자 15)</text>
-    <text x="{c2+14}" y="414" font-family="{FONT}" font-size="11.2" fill="#334155">• 실기 지연: <tspan font-weight="700" fill="#047857">397.1ms</tspan> (GB10 벤치 285ms)</text>
-    <text x="{c2+14}" y="436" font-family="{FONT}" font-size="11.2" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#047857">27.4% → 0.0%</tspan></text>
-    <text x="{c2+14}" y="458" font-family="{FONT}" font-size="10.5" fill="#64748b">• 언어 게이트(V4R): 오명령 99.5% 정지</text>
+    <rect x="{c2}" y="496" width="{cw}" height="118" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="520" font-family="{FONT}" font-size="11.6" font-weight="700" fill="#0f172a">• 11/25 실기: <tspan fill="#047857">45/45 성공 · 접촉 0건</tspan></text>
+    <text x="{c2+24}" y="538" font-family="{FONT}" font-size="10" fill="#64748b">(바구니 30 + 미학습 의자 15)</text>
+    <text x="{c2+14}" y="559" font-family="{FONT}" font-size="11" fill="#334155">• 실기 지연: <tspan font-weight="700" fill="#047857">397.1ms</tspan> (GB10 벤치 285ms)</text>
+    <text x="{c2+14}" y="580" font-family="{FONT}" font-size="11" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#047857">27.4% → 0.0%</tspan></text>
+    <text x="{c2+14}" y="601" font-family="{FONT}" font-size="10.3" fill="#64748b">• 언어 게이트(V4R): 오명령 99.5% 정지</text>
 
-    <rect x="{c3}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
-    <text x="{c3+14}" y="374" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 미학습 의자 정지: <tspan fill="#6d28d9">18.6% → 100%</tspan></text>
-    <text x="{c3+24}" y="392" font-family="{FONT}" font-size="10.2" fill="#64748b">(Hidden → Soft-Loc+ / Joint 97.7%)</text>
-    <text x="{c3+14}" y="414" font-family="{FONT}" font-size="11.2" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#6d28d9">14.9% → 0.0%</tspan></text>
-    <text x="{c3+14}" y="436" font-family="{FONT}" font-size="11.2" fill="#334155">• GB10 벤치 지연: <tspan font-weight="700" fill="#6d28d9">283.8ms</tspan> (종단 297ms)</text>
-    <text x="{c3+14}" y="458" font-family="{FONT}" font-size="10.5" fill="#64748b">• Open-Vocab 검출률 99.8% 유지</text>
+    <rect x="{c3}" y="496" width="{cw}" height="118" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="520" font-family="{FONT}" font-size="11.6" font-weight="700" fill="#0f172a">• 미학습 의자 정지: <tspan fill="#6d28d9">18.6% → 100%</tspan></text>
+    <text x="{c3+24}" y="538" font-family="{FONT}" font-size="10" fill="#64748b">(Hidden → Soft-Loc+ / Joint 97.7%)</text>
+    <text x="{c3+14}" y="559" font-family="{FONT}" font-size="11" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#6d28d9">14.9% → 0.0%</tspan></text>
+    <text x="{c3+14}" y="580" font-family="{FONT}" font-size="11" fill="#334155">• GB10 벤치 지연: <tspan font-weight="700" fill="#6d28d9">283.8ms</tspan> (종단 297ms)</text>
+    <text x="{c3+14}" y="601" font-family="{FONT}" font-size="10.3" fill="#64748b">• Open-Vocab 검출률 99.8% 유지</text>
 
-    <!-- ROW 4: 발견한 한계 -> 다음 세대 돌파 (연구 노력 & 진화 근거) -->
-    <rect x="24" y="478" width="118" height="66" rx="10" fill="#fffbeb" stroke="#fcd34d"/>
-    <text x="83" y="508" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#92400e">한계 → 돌파</text>
-    <text x="83" y="526" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#b45309">진화 동기</text>
+    <!-- ROW 4: 한계 -> 돌파 -->
+    <rect x="24" y="622" width="118" height="62" rx="10" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="83" y="650" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#92400e">한계 → 돌파</text>
+    <text x="83" y="668" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#b45309">진화 동기</text>
 
-    <rect x="{c1}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="{c1+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">한계:</tspan> 단일 객체 · 이산 8방향 제어</text>
-    <text x="{c1+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">→ 2세대: 다물체 일반화·연속 제어 돌파</text>
+    <rect x="{c1}" y="622" width="{cw}" height="62" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c1+14}" y="646" font-family="{FONT}" font-size="10.8" fill="#92400e"><tspan font-weight="700">한계:</tspan> 단일 객체 · 이산 8방향 양자화</text>
+    <text x="{c1+14}" y="668" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#047857">→ 2세대: 다물체 일반화·연속 조향 돌파</text>
 
-    <rect x="{c2}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="{c2+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">한계:</tspan> 문자열 파싱 경계에서 미분 단절</text>
-    <text x="{c2+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#6d28d9">→ 3세대: Soft-Loc 미분 직결로 돌파</text>
+    <rect x="{c2}" y="622" width="{cw}" height="62" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c2+14}" y="646" font-family="{FONT}" font-size="10.8" fill="#92400e"><tspan font-weight="700">한계:</tspan> 문자열 파싱 경계에서 미분 단절</text>
+    <text x="{c2+14}" y="668" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#6d28d9">→ 3세대: Soft-Loc 미분 직결로 돌파</text>
 
-    <rect x="{c3}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="{c3+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">과제:</tspan> 오프라인 검증 완료 · 실기 미실시</text>
-    <text x="{c3+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">→ 다음: 자율정지 E2E 실기 주행 검증</text>
+    <rect x="{c3}" y="622" width="{cw}" height="62" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c3+14}" y="646" font-family="{FONT}" font-size="10.8" fill="#92400e"><tspan font-weight="700">과제:</tspan> 오프라인 검증 완료 · 실기 미실시</text>
+    <text x="{c3+14}" y="668" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#1d4ed8">→ 다음: 자율정지 E2E 실기 주행 검증</text>
 
     <!-- ROW 5: 현재 단계 -->
-    <rect x="24" y="552" width="118" height="36" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="83" y="575" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#0f172a">현재 단계</text>
+    <rect x="24" y="692" width="118" height="36" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="715" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#0f172a">현재 단계</text>
 
-    <rect x="{c1}" y="552" width="{cw}" height="36" rx="10" fill="#dbeafe"/>
-    <text x="{c1 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#1e40af">JKSCI 1저자 투고 · 심사 중</text>
+    <rect x="{c1}" y="692" width="{cw}" height="36" rx="10" fill="#dbeafe"/>
+    <text x="{c1 + cw/2}" y="715" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#1e40af">JKSCI 1저자 투고 · 심사 중</text>
 
-    <rect x="{c2}" y="552" width="{cw}" height="36" rx="10" fill="#d1fae5"/>
-    <text x="{c2 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#065f46">실기 검증 완료 · EG1 vs EG2 비교 논문 진행</text>
+    <rect x="{c2}" y="692" width="{cw}" height="36" rx="10" fill="#d1fae5"/>
+    <text x="{c2 + cw/2}" y="715" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#065f46">실기 검증 완료 · EG1 vs EG2 비교 논문 진행</text>
 
-    <rect x="{c3}" y="552" width="{cw}" height="36" rx="10" fill="#ede9fe"/>
-    <text x="{c3 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#5b21b6">오프라인 5축 검증 완료 · 실기 확장 준비</text>
+    <rect x="{c3}" y="692" width="{cw}" height="36" rx="10" fill="#ede9fe"/>
+    <text x="{c3 + cw/2}" y="715" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#5b21b6">오프라인 5축 검증 완료 · 실기 확장 준비</text>
+
+    <text x="24" y="752" font-family="{FONT}" font-size="10.2" fill="#64748b">* 상단 3컷은 동일 실기 카메라 프레임(sc5_side_steer)에 각 세대 체크포인트(exp73 · A3C_AG23 · EG3-11 Soft-Loc)를 직접 추론한 실측 출력입니다.</text>
     '''
-    _save_svg_and_png("01_profile_roadmap", _svg_shell(W, H, body, defs))
+    _save_svg_and_png("01_profile_roadmap", _svg_shell(W, H, body))
 
 
 def build_02_edgeground_vla_v1_v2() -> None:
