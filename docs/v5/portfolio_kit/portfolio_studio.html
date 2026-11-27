@@ -170,7 +170,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = "minwoo_portfolio_studio_v6";
+const STORAGE_KEY = "minwoo_portfolio_studio_v7";
 const DEFAULT_IMG_BASE = "https://minuum.github.io/EdgeGroundVLA/v5/portfolio_kit";
 const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:8001/api/notion" : "/api/notion";
 
@@ -189,10 +189,10 @@ const DEFAULT_DATA = {
     {
       id: "sec2",
       enabled: true,
-      heading: "2. EdgeGround-VLA · 클라우드·지도 없는 온디바이스 주행",
-      body: "- 문제: 대형 VLM은 무거워 엣지 로봇에서 실시간 제어가 어렵고, 사전 지도가 없으면 낯선 환경에 취약합니다.\n- 해결: 동결된 VLM 위에 초경량 액션 헤드(1.128M/459M)와 연속 속도·안전 감속 제어기를 결합하고 추론을 2.09× 가속(591ms→285ms)했습니다.\n- 결과: Jetson Orin NX 단독 실기에서 훈련 위치 95.0%(300회 92.0%), 확장 모델은 처음 본 의자 15/15 포함 실기 45/45 성공·접촉 0건을 달성했습니다.",
+      heading: "2. EdgeGround-VLA · Real-Robot Benchmarks & Latency Acceleration",
+      body: "- EGVLA-1 (Jetson Orin NX 단독 실기): 전체의 0.25%(1.128M/459M)만 학습해 훈련 위치 95.0%(95/100), 미학습 출발지 포함 300회 92.0%(276/300) 달성\n- EGVLA-2 (Serbot 2 + GPU 서버 실기, 11/25): Flow-Matching Head + S2 안전 감속으로 바구니 30/30 + 미학습 의자 15/15 = 45/45 성공, 접촉 6건→0건 해소 (실기 지연 397.1ms, GB10 벤치 283.0ms 2.09×)\n- 오프라인 일반화·안전 감사(1,458 실기 프레임): 의자 중앙 출발 0%→100%, 근접 정지 30.2%→93.0%, 비목표 명령 차단 99.5%(MOD-V4R)",
       img: "02_edgeground_vla_v1_v2.png",
-      imgCaption: "EdgeGround-VLA v1→v2 아키텍처 진화 및 실기 정량 검증"
+      imgCaption: "Figure 2. Real-Robot Evaluation (EGVLA-1 & EGVLA-2), Hardware-Separated Latency Acceleration & Offline Audit"
     },
     {
       id: "sec3",

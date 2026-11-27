@@ -438,118 +438,150 @@ def build_01_profile_roadmap() -> None:
 
 
 def build_02_edgeground_vla_v1_v2() -> None:
-    """카드 2: EdgeGround-VLA 아키텍처 & 실기 정량 성과 (쉬운 용어 중심)."""
-    W, H = 1100, 510
-    body = f'''
-    <rect x="28" y="24" width="170" height="24" rx="12" fill="#dbeafe"/>
-    <text x="113" y="40" text-anchor="middle" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">FLAGSHIP PROJECT</text>
-    <text x="210" y="41" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#475569">EdgeGround-VLA — 클라우드·지도 없이 엣지 로봇에서 직접 주행하는 경량 VLA</text>
-    <text x="28" y="76" font-family="{FONT}" font-size="22" font-weight="700" fill="#0f172a">경량 아키텍처 진화 및 실기(Real-Robot) 검증 결과</text>
+    """Figure 2: CVPR/ICRA Publication Style — Real-Robot Benchmarks, Latency Separation & Offline Generalization."""
+    W, H = 1100, 710
+    bsk_uri = _b64_img("docs/v5/figures/real_1125/20261125_152041_바구니_trackF_center.jpg")
+    chr_uri = _b64_img("docs/v5/figures/real_1125/20261125_155938_의자_trackF_center.jpg")
 
-    <!-- 좌측: 아키텍처 -->
-    <rect x="28" y="96" width="516" height="390" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <text x="46" y="124" font-family="{FONT}" font-size="14" font-weight="700" fill="#0f172a">A. 시스템 구조: 동결(Frozen) VLM + 경량 정책 헤드</text>
+    C1, C2, C3 = "#0072B2", "#009E73", "#D55E00"
+    INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
 
-    <!-- v1 -->
-    <rect x="44" y="140" width="484" height="148" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
-    <rect x="56" y="150" width="128" height="22" rx="11" fill="#2563eb"/>
-    <text x="120" y="165" text-anchor="middle" font-family="{FONT}" font-size="11" font-weight="700" fill="#ffffff">v1 · On-Device 경량</text>
-    <text x="196" y="165" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#334155">전체의 0.25%(1.128M)만 학습 · 10Hz 비동기 제어</text>
+    # ── Panel (a): EGVLA-1 On-Device Real-Robot Success (N=300) ──
+    # 바 차트 좌표 (x=68..490, y=96..270)
+    ay_top, ay_bot = 104, 272
+    ah = ay_bot - ay_top
+    bars_a = [
+        ("pos1\n(Seen)", 95.0, "95/100", C1, 1.0),
+        ("pos2\n(-50 cm)", 91.0, "91/100", C1, 0.78),
+        ("pos3\n(+50 cm)", 90.0, "90/100", C1, 0.78),
+        ("Overall\n(N=300)", 92.0, "276/300", "#111827", 0.92),
+    ]
+    a_svg = [
+        f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) EGVLA-1: On-Device Real-Robot Success (Jetson Orin NX, N = 300)</text>',
+        f'<line x1="36" y1="43" x2="526" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
+        # Parameter Efficiency 인셋 콜아웃 (우상단)
+        f'<rect x="296" y="54" width="230" height="36" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
+        f'<text x="305" y="69" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{C1}">Trained: 1.128M / 459M (0.25%)</text>',
+        f'<text x="305" y="83" font-family="{PUB_FONT}" font-size="8.4" fill="{MUT}">10 Hz Async Control + Jitter Hold (No Map)</text>',
+    ]
+    # Y축 눈금 (0, 50, 80, 100%)
+    for pct in (0, 50, 80, 100):
+        yy = ay_bot - ah * (pct / 100.0)
+        dash = ' stroke-dasharray="3 2"' if pct > 0 else ""
+        scol = "#111827" if pct == 0 else "#E5E7EB"
+        a_svg.append(f'<line x1="72" y1="{yy:.1f}" x2="514" y2="{yy:.1f}" stroke="{scol}" stroke-width="0.9"{dash}/>')
+        a_svg.append(f'<text x="64" y="{yy+3:.1f}" text-anchor="end" font-family="{PUB_MONO}" font-size="8.5" fill="{MUT}">{pct}%</text>')
+    a_svg.append(f'<line x1="72" y1="{ay_top}" x2="72" y2="{ay_bot}" stroke="{INK}" stroke-width="1.0"/>')
 
-    <rect x="56" y="184" width="136" height="56" rx="9" fill="#e2e8f0" stroke="#94a3b8"/>
-    <text x="124" y="207" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#0f172a">OWLv2 + Kosmos-2</text>
-    <text x="124" y="225" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#475569">이중 동결 비전 인코더</text>
+    for i, (lbl, val, sub, col, op) in enumerate(bars_a):
+        bx = 98 + i * 104
+        bw = 56
+        bh = ah * (val / 100.0)
+        by = ay_bot - bh
+        a_svg.append(f'<rect x="{bx}" y="{by:.1f}" width="{bw}" height="{bh:.1f}" fill="{col}" fill-opacity="{op}"/>')
+        a_svg.append(f'<text x="{bx+bw/2}" y="{by-5:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="9.6" font-weight="700" fill="{INK}">{val:.1f}%</text>')
+        a_svg.append(f'<text x="{bx+bw/2}" y="{by+14:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.0" fill="#FFFFFF">{sub}</text>')
+        l1, l2 = lbl.split("\n")
+        a_svg.append(f'<text x="{bx+bw/2}" y="{ay_bot+15}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{l1}</text>')
+        a_svg.append(f'<text x="{bx+bw/2}" y="{ay_bot+28}" text-anchor="middle" font-family="{PUB_FONT}" font-size="8.3" fill="{MUT}">{l2}</text>')
 
-    <line x1="192" y1="212" x2="216" y2="212" stroke="#2563eb" stroke-width="2" marker-end="url(#arrBlue)"/>
+    # ── Panel (b): EGVLA-2 Multi-Object Real-Robot Eval (11/25, N=45) ──
+    b_svg = [
+        f'<text x="564" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) EGVLA-2: Multi-Object Real-Robot Arrival (11/25, N = 45, 0 Contact)</text>',
+        f'<line x1="564" y1="43" x2="1064" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
+        # 사진 1: 바구니
+        f'<text x="564" y="61" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C2}">Seen Object: Basket (30/30 · 0 Contact)</text>',
+        f'<clipPath id="fig2Bsk"><rect x="564" y="68" width="240" height="132"/></clipPath>',
+        f'<image href="{bsk_uri}" x="564" y="68" width="240" height="132" preserveAspectRatio="xMidYMid slice" clip-path="url(#fig2Bsk)"/>',
+        f'<rect x="564" y="68" width="240" height="132" fill="none" stroke="{INK}" stroke-width="0.9"/>',
+        f'<rect x="568" y="180" width="154" height="16" fill="rgba(255,255,255,0.90)"/>',
+        f'<text x="572" y="191" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C2}">max_area=0.295 · 396.5 ms</text>',
+        # 사진 2: 미학습 의자
+        f'<text x="824" y="61" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C2}">Unseen Object: Chair (15/15 · 0 Contact)</text>',
+        f'<clipPath id="fig2Chr"><rect x="824" y="68" width="240" height="132"/></clipPath>',
+        f'<image href="{chr_uri}" x="824" y="68" width="240" height="132" preserveAspectRatio="xMidYMid slice" clip-path="url(#fig2Chr)"/>',
+        f'<rect x="824" y="68" width="240" height="132" fill="none" stroke="{INK}" stroke-width="0.9"/>',
+        f'<rect x="828" y="180" width="154" height="16" fill="rgba(255,255,255,0.90)"/>',
+        f'<text x="832" y="191" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C2}">max_area=0.287 · 410.8 ms</text>',
+        # 하단 접촉 감소 대조 미니 바 (11/16 a3-s2 vs 11/25 MOD-DR-Safe)
+        f'<text x="564" y="224" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{INK}">Real-Robot Contact Events (45 trials each, Serbot 2 + GPU Server)</text>',
+        f'<text x="564" y="247" font-family="{PUB_FONT}" font-size="9.2" fill="{MUT}">a3-s2 (11/16, no S2 decel)</text>',
+        f'<rect x="720" y="236" width="220" height="14" fill="#F3F4F6"/>',
+        f'<rect x="720" y="236" width="220" height="14" fill="{C3}"/>',
+        f'<text x="948" y="247" font-family="{PUB_MONO}" font-size="9.4" font-weight="700" fill="{C3}">6 contacts</text>',
+        f'<text x="564" y="274" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">MOD-DR-Safe (11/25)</text>',
+        f'<rect x="720" y="263" width="220" height="14" fill="#F3F4F6"/>',
+        f'<rect x="720" y="263" width="4" height="14" fill="{C2}"/>',
+        f'<text x="948" y="274" font-family="{PUB_MONO}" font-size="9.4" font-weight="700" fill="{C2}">0 contacts (-100%)</text>',
+        f'<text x="564" y="298" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">* Model preemptive stop before near_area=0.25 in 45/45 runs (mean 4.1 decel steps).</text>',
+    ]
 
-    <rect x="220" y="184" width="136" height="56" rx="9" fill="#dbeafe" stroke="#60a5fa"/>
-    <text x="288" y="207" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#1e3a8a">경량 액션 헤드</text>
-    <text x="288" y="225" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#1d4ed8">8방향 이산 제어 (1.1M)</text>
+    # ── Panel (c): Inference Latency Acceleration (Hardware Separated) ──
+    c_svg = [
+        f'<text x="36" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Inference Latency Acceleration (Hardware Explicitly Separated)</text>',
+        f'<line x1="36" y1="361" x2="526" y2="361" stroke="{RULE}" stroke-width="0.8"/>',
+    ]
+    lat_items = [
+        ("GB10 GPU Benchmark (330 frames, beam_bench.json)", None, None, None, None),
+        ("beam=3 fp32 (Baseline)", 590.7, 960.0, "#9CA3AF", "590.7 ms"),
+        ("beam=1 fp16 (MOD-DR-Fast)", 283.0, 960.0, C1, "283.0 ms  (2.09x)"),
+        ("Real-Robot Server (soda GPU, 11/25 45 real runs)", None, None, None, None),
+        ("beam=3 fp32 (Prior Real)", 945.0, 960.0, "#9CA3AF", "~945 ms"),
+        ("beam=1 fp16 (11/25 Real)", 397.1, 960.0, C2, "397.1 ms  (2.3x+)"),
+    ]
+    ly = 386
+    for lbl, val, vmax, col, vtxt in lat_items:
+        if val is None:
+            c_svg.append(f'<text x="36" y="{ly}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">{html.escape(lbl)}</text>')
+            ly += 24
+        else:
+            bw = 240.0 * (val / vmax)
+            c_svg.append(f'<text x="44" y="{ly}" font-family="{PUB_FONT}" font-size="9.2" fill="{MUT}">{html.escape(lbl)}</text>')
+            c_svg.append(f'<rect x="196" y="{ly-10}" width="240" height="13" fill="#F3F4F6"/>')
+            c_svg.append(f'<rect x="196" y="{ly-10}" width="{bw:.1f}" height="13" fill="{col}"/>')
+            c_svg.append(f'<text x="444" y="{ly}" font-family="{PUB_MONO}" font-size="9.2" font-weight="700" fill="{col if col != "#9CA3AF" else MUT}">{vtxt}</text>')
+            ly += 28
+    c_svg.append(f'<text x="36" y="618" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">* beam=1 fp16 preserves 99.7% BBox agreement vs. beam=3 (cx MAE 0.0016, E2E serve 285.3 ms on GB10).</text>')
 
-    <line x1="356" y1="212" x2="380" y2="212" stroke="#2563eb" stroke-width="2" marker-end="url(#arrBlue)"/>
+    # ── Panel (d): Offline Generalization & Safety Benchmarks (Booktabs) ──
+    d_rows = [
+        ("Unseen Chair Center-Start Go", "0.0% (a3)", "100.0% (a3-ag23)", 1.0, C2),
+        ("Unseen Chair Close-Stop (a>=0.25)", "30.2% (a3-s2)", "93.0% (a3-ag23)", 0.93, C2),
+        ("Steering Alignment vs. Baseline", "25.13 deg (B1)", "0.54 deg (98.7% L/R)", 0.987, C1),
+        ("Visual-Swap Stop Flip Rate", "27.4% (a3)", "0.0% (a3-ag23)", 0.0, C2),
+        ("Negative-Prompt Safety Stop", "0.0% (no text)", "99.5% (MOD-V4R)", 0.995, C1),
+        ("BBox Horizontal-Flip Defense", "86.0% (V4)", "94.3% (MOD-V4R)", 0.943, C1),
+    ]
+    dy0 = 398
+    drh = 35
+    d_svg = [
+        f'<text x="564" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(d) Offline Generalization &amp; Safety Audit (1,458 Real Frames)</text>',
+        f'<line x1="564" y1="{dy0-17}" x2="1064" y2="{dy0-17}" stroke="{INK}" stroke-width="1.5"/>',
+        f'<text x="564" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{INK}">Metric (Offline Replay)</text>',
+        f'<text x="792" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{MUT}">Baseline</text>',
+        f'<text x="904" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C2}">Proposed (EGVLA-2)</text>',
+        f'<line x1="564" y1="{dy0+8}" x2="1064" y2="{dy0+8}" stroke="{INK}" stroke-width="0.9"/>',
+    ]
+    for i, (m, base_v, prop_v, pct, col) in enumerate(d_rows):
+        ry = dy0 + 28 + i * drh
+        if i % 2 == 1:
+            d_svg.append(f'<rect x="564" y="{ry-17}" width="500" height="{drh}" fill="#F9FAFB"/>')
+        d_svg.append(f'<text x="564" y="{ry}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{html.escape(m)}</text>')
+        d_svg.append(f'<text x="792" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" fill="{MUT}">{html.escape(base_v)}</text>')
+        d_svg.append(f'<text x="904" y="{ry-2}" font-family="{PUB_MONO}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(prop_v)}</text>')
+        d_svg.append(_sparkbar(904, ry + 3, 140, pct, col))
+    dbot = dy0 + 28 + len(d_rows) * drh - 12
+    d_svg.append(f'<line x1="564" y1="{dbot}" x2="1064" y2="{dbot}" stroke="{INK}" stroke-width="1.5"/>')
 
-    <rect x="384" y="184" width="132" height="56" rx="9" fill="#eff6ff" stroke="#93c5fd"/>
-    <text x="450" y="207" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#0f172a">Jetson Orin NX</text>
-    <text x="450" y="225" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#475569">지도·클라우드 없이 구동</text>
-
-    <text x="56" y="268" font-family="{FONT}" font-size="11" fill="#475569">결과: 훈련 위치 95.0%(95/100), 미학습 위치 포함 300회 92.0%(276/300)</text>
-
-    <!-- v2 -->
-    <rect x="44" y="304" width="484" height="166" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
-    <rect x="56" y="314" width="144" height="22" rx="11" fill="#059669"/>
-    <text x="128" y="329" text-anchor="middle" font-family="{FONT}" font-size="11" font-weight="700" fill="#ffffff">v2 · 다물체 일반화·안전</text>
-    <text x="212" y="329" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#065f46">연속 속도 생성 + 추론 2배 가속 + 무충돌 정지</text>
-
-    <rect x="56" y="348" width="136" height="60" rx="9" fill="#dcfce7" stroke="#4ade80"/>
-    <text x="124" y="371" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#064e3b">Florence-2 탐지</text>
-    <text x="124" y="388" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#047857">FP16 고속화 (285ms)</text>
-    <text x="124" y="402" text-anchor="middle" font-family="{FONT}" font-size="9.5" fill="#065f46">임의 물체 위치 추출</text>
-
-    <line x1="192" y1="378" x2="216" y2="378" stroke="#059669" stroke-width="2" marker-end="url(#arrGray)"/>
-
-    <rect x="220" y="348" width="136" height="60" rx="9" fill="#d1fae5" stroke="#10b981"/>
-    <text x="288" y="371" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#064e3b">Flow Matching 헤드</text>
-    <text x="288" y="388" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#047857">외형 편향 차단 학습</text>
-    <text x="288" y="402" text-anchor="middle" font-family="{FONT}" font-size="9.5" fill="#065f46">부드러운 연속 2D 속도</text>
-
-    <line x1="356" y1="378" x2="380" y2="378" stroke="#059669" stroke-width="2" marker-end="url(#arrGray)"/>
-
-    <rect x="384" y="348" width="132" height="60" rx="9" fill="#ecfdf5" stroke="#34d399"/>
-    <text x="450" y="371" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#064e3b">안전 감속 제어기</text>
-    <text x="450" y="388" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#047857">근접 선형 감속·필터</text>
-    <text x="450" y="402" text-anchor="middle" font-family="{FONT}" font-size="9.5" fill="#065f46">실기 접촉 0건 달성</text>
-
-    <text x="56" y="435" font-family="{FONT}" font-size="11" font-weight="700" fill="#065f46">결과: 바구니만 학습하고도 미학습 의자 15/15 포함 실기 45/45 성공 · 접촉 0건</text>
-    <text x="56" y="454" font-family="{FONT}" font-size="10.5" fill="#047857">언어 안전 게이트: 눈앞 물체와 다른 명령 입력 시 99.5% 제자리 정지</text>
-
-    <!-- 우측: KPI & 바차트 -->
-    <rect x="560" y="96" width="512" height="390" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <text x="578" y="124" font-family="{FONT}" font-size="14" font-weight="700" fill="#0f172a">B. 실기 정량 성과 요약 (Serbot 2 + Jetson Orin NX)</text>
-
-    <rect x="578" y="140" width="232" height="80" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
-    <text x="592" y="160" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">v1 · 온디바이스 주행 성공률</text>
-    <text x="592" y="190" font-family="{FONT}" font-size="24" font-weight="700" fill="#0f172a">95.0% / 92.0%</text>
-    <text x="592" y="209" font-family="{FONT}" font-size="10.5" fill="#475569">훈련 95/100 · 미학습 위치 포함 276/300</text>
-
-    <rect x="822" y="140" width="232" height="80" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
-    <text x="836" y="160" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">v2 · 미학습 물체 실기 검증</text>
-    <text x="836" y="190" font-family="{FONT}" font-size="24" font-weight="700" fill="#0f172a">45/45 · 접촉 0건</text>
-    <text x="836" y="209" font-family="{FONT}" font-size="10.5" fill="#475569">바구니 30/30 + 처음 본 의자 15/15</text>
-
-    <rect x="578" y="230" width="232" height="72" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
-    <text x="592" y="250" font-family="{FONT}" font-size="11" font-weight="700" fill="#334155">실시간 추론 지연 단축</text>
-    <text x="592" y="277" font-family="{FONT}" font-size="20" font-weight="700" fill="#059669">591ms → 285ms</text>
-    <text x="592" y="294" font-family="{FONT}" font-size="10.5" fill="#475569">2.09× 가속 (정확도 99.7% 유지)</text>
-
-    <rect x="822" y="230" width="232" height="72" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
-    <text x="836" y="250" font-family="{FONT}" font-size="11" font-weight="700" fill="#334155">조향 정밀도 · 학습 효율</text>
-    <text x="836" y="277" font-family="{FONT}" font-size="20" font-weight="700" fill="#2563eb">0.54° · 0.25%</text>
-    <text x="836" y="294" font-family="{FONT}" font-size="10.5" fill="#475569">방향 오차 1° 미만 · 1.128M/459M 학습</text>
-
-    <text x="578" y="330" font-family="{FONT}" font-size="12" font-weight="700" fill="#334155">주요 개선 지표 (기존 기준선 → 개선 모델)</text>
-
-    <text x="578" y="354" font-family="{FONT}" font-size="11" fill="#475569">미학습 의자 출발</text>
-    <rect x="692" y="342" width="286" height="16" rx="4" fill="#f1f5f9"/>
-    <rect x="692" y="342" width="286" height="16" rx="4" fill="url(#greenGrad)"/>
-    <text x="986" y="354" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">0% → 100%</text>
-
-    <text x="578" y="384" font-family="{FONT}" font-size="11" fill="#475569">근접 무충돌 정지</text>
-    <rect x="692" y="372" width="286" height="16" rx="4" fill="#f1f5f9"/>
-    <rect x="692" y="372" width="80" height="16" rx="4" fill="#fb923c"/>
-    <rect x="692" y="372" width="266" height="16" rx="4" fill="url(#greenGrad)" fill-opacity="0.88"/>
-    <text x="986" y="384" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">28% → 93%</text>
-
-    <text x="578" y="414" font-family="{FONT}" font-size="11" fill="#475569">오명령 안전 차단</text>
-    <rect x="692" y="402" width="286" height="16" rx="4" fill="#f1f5f9"/>
-    <rect x="692" y="402" width="284" height="16" rx="4" fill="url(#blueGrad)"/>
-    <text x="986" y="414" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">99.5% 정지</text>
-
-    <text x="578" y="444" font-family="{FONT}" font-size="11" fill="#475569">프레임 추론 지연</text>
-    <rect x="692" y="432" width="286" height="16" rx="4" fill="#fee2e2"/>
-    <rect x="692" y="432" width="138" height="16" rx="4" fill="url(#purpleGrad)"/>
-    <text x="986" y="444" font-family="{FONT}" font-size="11" font-weight="700" fill="#6d28d9">285ms (-52%)</text>
-    '''
-    _save_svg_and_png("02_edgeground_vla_v1_v2", _svg_shell(W, H, body))
+    svg_str = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
+  <rect x="0" y="0" width="{W}" height="{H}" fill="#FFFFFF"/>
+  {"".join(a_svg)}
+  {"".join(b_svg)}
+  {"".join(c_svg)}
+  {"".join(d_svg)}
+  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 2. Real-robot evaluation of EGVLA-1 (on-device Jetson Orin NX) and EGVLA-2 (Serbot 2 + GPU server), hardware-separated latency acceleration, and offline generalization audit.</text>
+</svg>'''
+    _save_svg_and_png("02_edgeground_vla_v1_v2", svg_str)
 
 
 def _draw_scene_overlay(x0: float, y0: float, w: float, h: float, sc: dict, items: list[tuple[str, str, str, float]]) -> str:
