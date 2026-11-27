@@ -214,21 +214,22 @@ def _mini_icon(kind: str, x: float, y: float, col: str) -> str:
     return ""
 
 
-def _arch_box(x: float, y: float, w: float, h: float, title: str, sub: str, frozen: bool, col: str, icon_kind: str = "") -> str:
-    """아키텍처 다이어그램 모듈 박스 (좌측 미니 아이콘 + 우상단 Frozen/Trainable 표시)."""
+def _arch_box(x: float, y: float, w: float, h: float, title: str, sub: str, spec: str, frozen: bool, col: str, icon_kind: str = "") -> str:
+    """3줄 고밀도 아키텍처 모듈 박스 (제목 + 핵심 구조 + Mono 텐서/파라미터 스펙)."""
     bg = "#F3F4F6" if frozen else "#FFFFFF"
     stroke = "#9CA3AF" if frozen else col
     sw = "1.0" if frozen else "1.4"
     tc = "#374151" if frozen else "#111827"
-    sc = "#6B7280" if frozen else col
-    status_icon = _lock_icon(x + w - 13, y + 4) if frozen else _train_icon(x + w - 13, y + 4, col)
-    left_icon = _mini_icon(icon_kind, x + 7, y + 12, col) if icon_kind else ""
-    tx = x + (36 if icon_kind else 8)
+    sc = "#4B5563" if frozen else col
+    status_icon = _lock_icon(x + w - 13, y + 5) if frozen else _train_icon(x + w - 13, y + 5, col)
+    left_icon = _mini_icon(icon_kind, x + 8, y + (h - 20) / 2, col) if icon_kind else ""
+    tx = x + (37 if icon_kind else 8)
     return (
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="2" fill="{bg}" stroke="{stroke}" stroke-width="{sw}"/>'
         f'{left_icon}{status_icon}'
         f'<text x="{tx}" y="{y + 18}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{tc}">{html.escape(title)}</text>'
-        f'<text x="{tx}" y="{y + 32}" font-family="{PUB_FONT}" font-size="8.4" fill="{sc}">{html.escape(sub)}</text>'
+        f'<text x="{tx}" y="{y + 33}" font-family="{PUB_FONT}" font-size="8.4" fill="{sc}">{html.escape(sub)}</text>'
+        f'<text x="{tx}" y="{y + 49}" font-family="{PUB_MONO}" font-size="7.8" fill="#6B7280">{html.escape(spec)}</text>'
     )
 
 
@@ -250,8 +251,8 @@ def _sparkbar(x: float, y: float, w: float, pct: float, col: str) -> str:
 
 
 def build_01_profile_roadmap() -> None:
-    """Figure 1: CVPR/ICRA Publication Style — (a) Same-Frame Inference, (b) Unified Table + Sparkbars, (c) Visual Architecture & Gradient Flow."""
-    W, H = 1100, 932
+    """Figure 1: CVPR/ICRA Publication Style — (a) Same-Frame Inference, (b) Unified Table + Sparkbars, (c) High-Density Architecture & Gradient Flow."""
+    W, H = 1100, 995
     same_img_uri = _b64_img("docs/v5/figures/inline/99f9060660c1394c.jpg")
     serbot_uri = _b64_img("docs/v5/figures/figure2_v2_hardware_web.png")
 
@@ -285,7 +286,7 @@ def build_01_profile_roadmap() -> None:
         "Output: [0.59, -0.32]  (-28.8 deg, E2E)",
     )
 
-    # (b) LaTeX Booktabs 통일 기준 비교표 + 핵심 수치 스파크바
+    # (b) LaTeX Booktabs 통일 기준 비교표 (EGVLA-1 Jetson 실측 지연 정정: 1.02s fp16 / 528ms cache avg)
     rows = [
         ("VLA Paradigm", "Modular VLA (2-Stage)", "Modular VLA (2-Stage)", "End-to-End VLA", None),
         ("VLM Backbone", "OWLv2 + Kosmos-2 (Frozen)", "Florence-2 (Frozen)", "Florence-2 (Decoder LoRA)", None),
@@ -296,7 +297,7 @@ def build_01_profile_roadmap() -> None:
         ("Real-Robot Success", "95.0% (Seen) / 92.0% (300 trials)", "45/45 (0 contact; unseen chair 15/15)", "Pending (Offline Verified)", (0.95, 1.0, None)),
         ("Unseen-Object Stop", "N/A (Single-Object Basket)", "93.0% (area >= 0.25, MOD-A3-AG)", "100.0% (Soft-Loc+) / 97.7% (Joint)", (None, 0.93, 1.0)),
         ("Visual-Swap Flip", "N/A", "27.4% -> 0.0% (a3 -> a3-ag23)", "14.9% -> 0.0% (Hidden -> Soft-Loc)", None),
-        ("Inference Latency", "On-Device 10 Hz Async (Jitter Hold)", "397.1 ms Real (285.3 ms GB10)", "296.6 ms GB10 (283.8 ms Core)", None),
+        ("Inference Latency", "1.02s fp16 / ~528ms avg w/ cache", "397.1 ms Real (285.3 ms GB10)", "296.6 ms GB10 (283.8 ms Core)", None),
     ]
 
     tx0, tx1, tx2, tx3 = 36, 232, 514, 796
@@ -329,35 +330,40 @@ def build_01_profile_roadmap() -> None:
     bot_y = ty0 + 30 + len(rows) * rh - 12
     tbl_svg.append(f'<line x1="36" y1="{bot_y}" x2="1064" y2="{bot_y}" stroke="{INK}" stroke-width="1.6"/>')
 
-    # (c) Visual Architecture & Gradient Flow (실제 카메라 썸네일 + 모듈별 미니 아이콘 + 실제 로봇 썸네일)
+    # (c) 3줄 고밀도 아키텍처 & 텐서 차원 & Gradient Flow 다이어그램
     cy_hdr = bot_y + 34
-    r1y, r2y, r3y = cy_hdr + 26, cy_hdr + 92, cy_hdr + 158
-    bh = 44
+    bh = 60
+    r1y, r2y, r3y = cy_hdr + 26, cy_hdr + 110, cy_hdr + 194
 
-    def _arrow(x1: float, y: float, x2: float, col: str = "#374151") -> str:
-        return f'<line x1="{x1}" y1="{y}" x2="{x2}" y2="{y}" stroke="{col}" stroke-width="1.3" marker-end="url(#pubArr)"/>'
+    def _arrow(x1: float, y: float, x2: float, col: str = "#374151", lbl: str = "") -> str:
+        s = f'<line x1="{x1}" y1="{y}" x2="{x2}" y2="{y}" stroke="{col}" stroke-width="1.3" marker-end="url(#pubArr)"/>'
+        if lbl:
+            s += f'<text x="{(x1+x2)/2:.1f}" y="{y - 5}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.4" fill="{MUT}">{html.escape(lbl)}</text>'
+        return s
 
     def _input_thumb(y: float, cid: str, prompt_txt: str) -> str:
         return (
-            f'<rect x="108" y="{y}" width="118" height="{bh}" rx="2" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.0"/>'
-            f'<clipPath id="{cid}"><rect x="112" y="{y+4}" width="44" height="36" rx="1"/></clipPath>'
-            f'<image href="{same_img_uri}" x="112" y="{y+4}" width="44" height="36" preserveAspectRatio="xMidYMid slice" clip-path="url(#{cid})"/>'
-            f'<rect x="112" y="{y+4}" width="44" height="36" fill="none" stroke="#9CA3AF" stroke-width="0.6"/>'
-            f'<text x="161" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">RGB+Text</text>'
-            f'<text x="161" y="{y+32}" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">{html.escape(prompt_txt)}</text>'
+            f'<rect x="104" y="{y}" width="122" height="{bh}" rx="2" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.0"/>'
+            f'<clipPath id="{cid}"><rect x="109" y="{y+7}" width="44" height="46" rx="1"/></clipPath>'
+            f'<image href="{same_img_uri}" x="109" y="{y+7}" width="44" height="46" preserveAspectRatio="xMidYMid slice" clip-path="url(#{cid})"/>'
+            f'<rect x="109" y="{y+7}" width="44" height="46" fill="none" stroke="#9CA3AF" stroke-width="0.6"/>'
+            f'<text x="158" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">RGB+Text</text>'
+            f'<text x="158" y="{y+33}" font-family="{PUB_FONT}" font-size="8.0" fill="{MUT}">{html.escape(prompt_txt)}</text>'
+            f'<text x="158" y="{y+49}" font-family="{PUB_MONO}" font-size="7.5" fill="#6B7280">1280x720</text>'
         )
 
-    def _output_robot(y: float, cid: str, col: str, l1: str, l2: str) -> str:
+    def _output_robot(y: float, cid: str, col: str, l1: str, l2: str, l3: str) -> str:
         return (
-            f'<rect x="928" y="{y}" width="136" height="{bh}" rx="2" fill="#FFFFFF" stroke="{col}" stroke-width="1.3"/>'
-            f'<clipPath id="{cid}"><rect x="932" y="{y+4}" width="36" height="36" rx="1"/></clipPath>'
-            f'<image href="{serbot_uri}" x="932" y="{y+4}" width="36" height="36" preserveAspectRatio="xMidYMid cover" clip-path="url(#{cid})"/>'
-            f'<text x="973" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(l1)}</text>'
-            f'<text x="973" y="{y+32}" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">{html.escape(l2)}</text>'
+            f'<rect x="926" y="{y}" width="138" height="{bh}" rx="2" fill="#FFFFFF" stroke="{col}" stroke-width="1.3"/>'
+            f'<clipPath id="{cid}"><rect x="931" y="{y+7}" width="36" height="46" rx="1"/></clipPath>'
+            f'<image href="{serbot_uri}" x="931" y="{y+7}" width="36" height="46" preserveAspectRatio="xMidYMid cover" clip-path="url(#{cid})"/>'
+            f'<text x="972" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(l1)}</text>'
+            f'<text x="972" y="{y+33}" font-family="{PUB_FONT}" font-size="8.0" fill="{INK}">{html.escape(l2)}</text>'
+            f'<text x="972" y="{y+49}" font-family="{PUB_MONO}" font-size="7.4" fill="{MUT}">{html.escape(l3)}</text>'
         )
 
     arch_svg = [
-        f'<text x="36" y="{cy_hdr}" font-family="{PUB_FONT}" font-size="12.5" font-weight="700" fill="{INK}">(c) Architecture &amp; Gradient Flow Comparison</text>',
+        f'<text x="36" y="{cy_hdr}" font-family="{PUB_FONT}" font-size="12.5" font-weight="700" fill="{INK}">(c) Architecture, Tensor Flow &amp; Gradient Path Comparison</text>',
         _lock_icon(646, cy_hdr - 10),
         f'<text x="659" y="{cy_hdr - 1}" font-family="{PUB_FONT}" font-size="9.5" fill="{MUT}">Frozen</text>',
         _train_icon(708, cy_hdr - 10, INK),
@@ -369,50 +375,50 @@ def build_01_profile_roadmap() -> None:
         f'<line x1="36" y1="{cy_hdr + 9}" x2="1064" y2="{cy_hdr + 9}" stroke="{RULE}" stroke-width="0.8"/>',
 
         # Row 1: EGVLA-1
-        f'<text x="36" y="{r1y + 19}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C1}">EGVLA-1</text>',
-        f'<text x="36" y="{r1y + 33}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
+        f'<text x="36" y="{r1y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C1}">EGVLA-1</text>',
+        f'<text x="36" y="{r1y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
         _input_thumb(r1y, "inG1", "basket only"),
-        _arrow(226, r1y + 22, 248),
-        _arch_box(250, r1y, 206, bh, "OWLv2 + Kosmos-2", "Dual Frozen (458M)", True, C1, "dual_enc"),
-        _arrow(456, r1y + 22, 512),
-        _sg_badge(484, r1y + 22),
-        _arch_box(514, r1y, 180, bh, "2D BBox + Proj.", "6-frame win (280-d)", False, C1, "bbox_win"),
-        _arrow(694, r1y + 22, 718),
-        _arch_box(720, r1y, 182, bh, "Discrete MLP Head", "8-Class (1.128M)", False, C1, "compass8"),
-        _arrow(902, r1y + 22, 926),
-        _output_robot(r1y, "outG1", C1, "8-Way Act.", "Jetson 10Hz"),
+        _arrow(226, r1y + 30, 248),
+        _arch_box(250, r1y, 206, bh, "OWLv2 + Kosmos-2", "Dual Frozen Vision Enc.", "458M · 962+54ms fp16", True, C1, "dual_enc"),
+        _arrow(456, r1y + 30, 512),
+        _sg_badge(484, r1y + 30),
+        _arch_box(514, r1y, 180, bh, "2D BBox + Proj.", "6-Frame History Window", "1560-d (bbox*3 + vis)", False, C1, "bbox_win"),
+        _arrow(694, r1y + 30, 718),
+        _arch_box(720, r1y, 182, bh, "Discrete MLP Head", "1560->512->128->8", "1.128M (0.25%) · <1ms", False, C1, "compass8"),
+        _arrow(902, r1y + 30, 924),
+        _output_robot(r1y, "outG1", C1, "8-Way 3-DoF", "Jetson On-Dev.", "10Hz async ctrl"),
 
         # Row 2: EGVLA-2
-        f'<text x="36" y="{r2y + 19}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C2}">EGVLA-2</text>',
-        f'<text x="36" y="{r2y + 33}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
+        f'<text x="36" y="{r2y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C2}">EGVLA-2</text>',
+        f'<text x="36" y="{r2y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">Modular</text>',
         _input_thumb(r2y, "inG2", "open-vocab"),
-        _arrow(226, r2y + 22, 248),
-        _arch_box(250, r2y, 206, bh, "Florence-2 (0.23B)", "Frozen Enc+Dec", True, C2, "florence"),
-        _arrow(456, r2y + 22, 512),
-        _sg_badge(484, r2y + 22),
-        _arch_box(514, r2y, 180, bh, "Text-Parsed <loc>", "Regex BBox + Vis", True, C2, "text_parse"),
-        _arrow(694, r2y + 22, 718),
-        _arch_box(720, r2y, 182, bh, "Flow-Matching Head", "PiZeroFM + Swap", False, C2, "flow_traj"),
-        _arrow(902, r2y + 22, 926),
-        _output_robot(r2y, "outG2", C2, "Cont. [vx,vy]", "+ S2 Decel"),
+        _arrow(226, r2y + 30, 248),
+        _arch_box(250, r2y, 206, bh, "Florence-2 (0.23B)", "Frozen Enc + BART Dec", "beam=1 fp16 · 283ms", True, C2, "florence"),
+        _arrow(456, r2y + 30, 512),
+        _sg_badge(484, r2y + 30),
+        _arch_box(514, r2y, 180, bh, "Text-Parsed <loc>", "Regex [cx,cy,a,has]", "3-win(12-d) + 768-d", True, C2, "text_parse"),
+        _arrow(694, r2y + 30, 718),
+        _arch_box(720, r2y, 182, bh, "Flow-Matching Head", "PiZeroFM + 50% Swap", "K=8 steps · H=8 chunk", False, C2, "flow_traj"),
+        _arrow(902, r2y + 30, 924),
+        _output_robot(r2y, "outG2", C2, "Cont. [vx,vy]", "+ S2 Decel", "Real 397ms · 0c"),
 
         # Row 3: EGVLA-3
-        f'<text x="36" y="{r3y + 19}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C3}">EGVLA-3</text>',
-        f'<text x="36" y="{r3y + 33}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">End-to-End</text>',
+        f'<text x="36" y="{r3y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C3}">EGVLA-3</text>',
+        f'<text x="36" y="{r3y + 39}" font-family="{PUB_FONT}" font-size="8.5" fill="{MUT}">End-to-End</text>',
         _input_thumb(r3y, "inG3", "open-vocab"),
-        _arrow(226, r3y + 22, 248),
-        _arch_box(250, r3y, 206, bh, "Florence-2 (LoRA)", "Adapted Decoder", False, C3, "florence_lora"),
-        _arrow(456, r3y + 22, 512, C3),
-        _arch_box(514, r3y, 180, bh, "Soft-Loc (Expected)", "Softmax Dist. (0%)", False, C3, "softloc_dist"),
-        _arrow(694, r3y + 22, 718, C3),
-        _arch_box(720, r3y, 182, bh, "Flow-Matching Head", "PiZeroFM (Joint)", False, C3, "flow_traj"),
-        _arrow(902, r3y + 22, 926, C3),
-        _output_robot(r3y, "outG3", C3, "Cont. [vx,vy]", "End-to-End"),
+        _arrow(226, r3y + 30, 248),
+        _arch_box(250, r3y, 206, bh, "Florence-2 (LoRA)", "Prefix-Forced KV-Cache", "Adapted 6L BART Dec", False, C3, "florence_lora"),
+        _arrow(456, r3y + 30, 512, C3, "logits"),
+        _arch_box(514, r3y, 180, bh, "Soft-Loc (Expected)", "Softmax <loc_0~999>", "0% Parse · 4-step E[u]", False, C3, "softloc_dist"),
+        _arrow(694, r3y + 30, 718, C3, "feat"),
+        _arch_box(720, r3y, 182, bh, "Flow-Matching Head", "PiZeroFM (Joint + KL)", "K=8 steps · H=8 chunk", False, C3, "flow_traj"),
+        _arrow(902, r3y + 30, 924, C3),
+        _output_robot(r3y, "outG3", C3, "Cont. [vx,vy]", "End-to-End VLA", "GB10 297ms"),
 
         # Gradient Backprop Arc
-        f'<path d="M 811,{r3y + bh} L 811,{r3y + bh + 18} L 353,{r3y + bh + 18} L 353,{r3y + bh + 3}" fill="none" stroke="{C3}" stroke-width="1.5" stroke-dasharray="4 2.5" marker-end="url(#gradArr)"/>',
-        f'<rect x="502" y="{r3y + bh + 10}" width="206" height="15" fill="#FFFFFF"/>',
-        f'<text x="605" y="{r3y + bh + 21}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{C3}">End-to-End Gradient Flow (L_action)</text>',
+        f'<path d="M 811,{r3y + bh} L 811,{r3y + bh + 20} L 353,{r3y + bh + 20} L 353,{r3y + bh + 3}" fill="none" stroke="{C3}" stroke-width="1.5" stroke-dasharray="4 2.5" marker-end="url(#gradArr)"/>',
+        f'<rect x="502" y="{r3y + bh + 12}" width="206" height="15" fill="#FFFFFF"/>',
+        f'<text x="605" y="{r3y + bh + 23}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{C3}">End-to-End Gradient Flow (L_action)</text>',
     ]
 
     svg_str = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
@@ -432,7 +438,7 @@ def build_01_profile_roadmap() -> None:
   {f3}
   {"".join(tbl_svg)}
   {"".join(arch_svg)}
-  <text x="36" y="{H - 12}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 1. Evolution from Modular VLA (EGVLA-1/2) to End-to-End VLA (EGVLA-3): (a) same-frame inference, (b) unified evaluation, and (c) visual architecture &amp; gradient flow.</text>
+  <text x="36" y="{H - 12}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 1. Evolution from Modular VLA (EGVLA-1/2) to End-to-End VLA (EGVLA-3): (a) same-frame inference, (b) unified evaluation, and (c) detailed tensor &amp; gradient flow.</text>
 </svg>'''
     _save_svg_and_png("01_profile_roadmap", svg_str)
 
@@ -460,9 +466,9 @@ def build_02_edgeground_vla_v1_v2() -> None:
         f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) EGVLA-1: On-Device Real-Robot Success (Jetson Orin NX, N = 300)</text>',
         f'<line x1="36" y1="43" x2="526" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
         # Parameter Efficiency 인셋 콜아웃 (우상단)
-        f'<rect x="296" y="54" width="230" height="36" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
-        f'<text x="305" y="69" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{C1}">Trained: 1.128M / 459M (0.25%)</text>',
-        f'<text x="305" y="83" font-family="{PUB_FONT}" font-size="8.4" fill="{MUT}">10 Hz Async Control + Jitter Hold (No Map)</text>',
+        f'<rect x="272" y="54" width="254" height="36" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
+        f'<text x="280" y="69" font-family="{PUB_FONT}" font-size="9.1" font-weight="700" fill="{C1}">Trained: 1.128M / 459M (0.25%)</text>',
+        f'<text x="280" y="83" font-family="{PUB_FONT}" font-size="8.2" fill="{MUT}">OWLv2 962ms fp16 (~528ms cache avg) · 10Hz ctrl</text>',
     ]
     # Y축 눈금 (0, 50, 80, 100%)
     for pct in (0, 50, 80, 100):
@@ -518,7 +524,7 @@ def build_02_edgeground_vla_v1_v2() -> None:
 
     # ── Panel (c): Inference Latency Acceleration (Hardware Separated) ──
     c_svg = [
-        f'<text x="36" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Inference Latency Acceleration (Hardware Explicitly Separated)</text>',
+        f'<text x="36" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) EGVLA-2 Latency Acceleration (Hardware Explicitly Separated)</text>',
         f'<line x1="36" y1="361" x2="526" y2="361" stroke="{RULE}" stroke-width="0.8"/>',
     ]
     lat_items = [
