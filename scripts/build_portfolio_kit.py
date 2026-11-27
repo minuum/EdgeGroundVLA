@@ -73,76 +73,138 @@ def _svg_shell(w: int, h: int, body: str, defs: str = "") -> str:
 
 
 def build_01_profile_roadmap() -> None:
-    """카드 1: 핵심 정체성 & 실기 기반 3단계 연구 성과 (개인 신상/계획 제거)."""
-    W, H = 1100, 400
+    """카드 1: EGVLA 1·2·3 세대별 아키텍처·구동환경·검증수치·한계돌파 비교 매트릭스 (환각 0% 경계표)."""
+    W, H = 1100, 608
     serbot_uri = _b64_img("docs/v5/figures/hardware_serbot_combined.png")
-    defs = '<clipPath id="clipSerbot"><rect x="26" y="26" width="278" height="316" rx="14"/></clipPath>'
+    defs = '<clipPath id="clipSerbotTop"><rect x="26" y="24" width="108" height="92" rx="12"/></clipPath>'
+
+    c1, c2, c3 = 152, 466, 780
+    cw = 296
 
     body = f'''
-    <!-- 좌측: 실기 로봇 플랫폼 -->
-    <rect x="24" y="24" width="282" height="352" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <image href="{serbot_uri}" x="26" y="26" width="278" height="308" preserveAspectRatio="xMidYMid meet" clip-path="url(#clipSerbot)"/>
-    <rect x="24" y="334" width="282" height="42" rx="10" fill="#f1f5f9"/>
-    <text x="165" y="353" text-anchor="middle" font-family="{FONT}" font-size="13" font-weight="700" fill="#0f172a">Serbot 2 + Jetson Orin NX</text>
-    <text x="165" y="369" text-anchor="middle" font-family="{FONT}" font-size="10.5" fill="#475569">Real-Robot Testbed · ROS2 · 10Hz On-Device</text>
+    <!-- 상단 헤더: Serbot 2 썸네일 + 정체성 + 검증 단계 범례 -->
+    <rect x="24" y="22" width="112" height="96" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+    <image href="{serbot_uri}" x="26" y="24" width="108" height="92" preserveAspectRatio="xMidYMid meet" clip-path="url(#clipSerbotTop)"/>
 
-    <!-- 우측 상단: 원라인 포지셔닝 -->
-    <rect x="330" y="26" width="176" height="24" rx="12" fill="#dbeafe"/>
-    <text x="418" y="42" text-anchor="middle" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">ROBOTICS &amp; AI RESEARCH</text>
-    <text x="518" y="43" font-family="{FONT}" font-size="12" font-weight="700" fill="#475569">On-Device VLA · Real-Robot Generalization · Agent Systems</text>
+    <rect x="152" y="24" width="168" height="22" rx="11" fill="#dbeafe"/>
+    <text x="236" y="39" text-anchor="middle" font-family="{FONT}" font-size="10.8" font-weight="700" fill="#1d4ed8">ROBOTICS &amp; VLA OVERVIEW</text>
+    <text x="332" y="40" font-family="{FONT}" font-size="12" font-weight="700" fill="#475569">실기 한계를 스스로 진단하고 3세대까지 돌파한 연구 진화</text>
 
-    <text x="330" y="84" font-family="{FONT}" font-size="27" font-weight="700" fill="#0f172a">Minwoo Lee (이민우)</text>
-    <text x="330" y="112" font-family="{FONT}" font-size="14" fill="#334155">클라우드·사전 지도 없이 엣지 로봇에서 직접 작동하고, 처음 보는 물체에도 안전하게 일반화되는 정책을 만듭니다.</text>
+    <text x="152" y="76" font-family="{FONT}" font-size="25" font-weight="700" fill="#0f172a">Minwoo Lee (이민우) — EGVLA 1 · 2 · 3 세대별 사실 비교</text>
+    <text x="152" y="102" font-family="{FONT}" font-size="13" fill="#334155">온디바이스 경량화(1세대) → 다물체 실기 일반화·무충돌 제어(2세대) → 완전 미분 E2E 공간 병목(3세대)</text>
 
-    <!-- 우측 중단: 3단계 연구 성과 카드 -->
-    <text x="330" y="148" font-family="{FONT}" font-size="12" font-weight="700" fill="#64748b">KEY MILESTONES — 실기 검증으로 이어진 3단계 연구 진화</text>
+    <rect x="758" y="22" width="152" height="24" rx="12" fill="#dcfce7" stroke="#86efac"/>
+    <text x="834" y="38" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#166534">● 실기 주행 검증 (1·2세대)</text>
+    <rect x="918" y="22" width="158" height="24" rx="12" fill="#f3e8ff" stroke="#d8b4fe"/>
+    <text x="997" y="38" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#6b21a8">● 오프라인 재생 (3세대)</text>
 
-    <!-- Stage 1 -->
-    <rect x="330" y="160" width="228" height="150" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
-    <rect x="344" y="172" width="110" height="20" rx="10" fill="#2563eb"/>
-    <text x="399" y="186" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#ffffff">Stage 1 · 온디바이스</text>
-    <text x="344" y="214" font-family="{FONT}" font-size="15" font-weight="700" fill="#0f172a">0.25% 파라미터 학습</text>
-    <text x="344" y="236" font-family="{FONT}" font-size="11.5" fill="#334155">• 1.128M / 459M 경량 헤드</text>
-    <text x="344" y="255" font-family="{FONT}" font-size="11.5" fill="#334155">• Jetson Orin NX 단독 구동</text>
-    <text x="344" y="276" font-family="{FONT}" font-size="12" font-weight="700" fill="#1d4ed8">실기 95.0% (300회 92.0%)</text>
-    <text x="344" y="297" font-family="{FONT}" font-size="10.5" fill="#64748b">JKSCI 1저자 심사 중</text>
+    <!-- 컬럼 헤더 3종 -->
+    <rect x="{c1}" y="132" width="{cw}" height="46" rx="12" fill="#1d4ed8"/>
+    <text x="{c1 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 1 (1세대)</text>
+    <text x="{c1 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#dbeafe">온디바이스 경량 · JKSCI 심사 중</text>
 
-    <line x1="558" y1="235" x2="582" y2="235" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrGray)"/>
+    <rect x="{c2}" y="132" width="{cw}" height="46" rx="12" fill="#059669"/>
+    <text x="{c2 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 2 (2세대)</text>
+    <text x="{c2 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#d1fae5">다물체 일반화·안전 · 실기 완료</text>
 
-    <!-- Stage 2 -->
-    <rect x="586" y="160" width="234" height="150" rx="14" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
-    <rect x="600" y="172" width="118" height="20" rx="10" fill="#059669"/>
-    <text x="659" y="186" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#ffffff">Stage 2 · 일반화·안전</text>
-    <text x="600" y="214" font-family="{FONT}" font-size="15" font-weight="700" fill="#0f172a">미학습 물체 무충돌 주행</text>
-    <text x="600" y="236" font-family="{FONT}" font-size="11.5" fill="#334155">• 연속 행동 생성 + 안전 감속</text>
-    <text x="600" y="255" font-family="{FONT}" font-size="11.5" fill="#334155">• 추론 지연 591→285ms (2.09×)</text>
-    <text x="600" y="276" font-family="{FONT}" font-size="12" font-weight="700" fill="#047857">실기 45/45 · 접촉 0건</text>
-    <text x="600" y="297" font-family="{FONT}" font-size="10.5" fill="#64748b">미학습 의자 15/15 포함</text>
+    <rect x="{c3}" y="132" width="{cw}" height="46" rx="12" fill="#7c3aed"/>
+    <text x="{c3 + cw/2}" y="153" text-anchor="middle" font-family="{FONT}" font-size="15" font-weight="700" fill="#ffffff">EGVLA 3 (3세대)</text>
+    <text x="{c3 + cw/2}" y="170" text-anchor="middle" font-family="{FONT}" font-size="10.8" fill="#ede9fe">완전 미분 E2E · 오프라인 검증</text>
 
-    <line x1="820" y1="235" x2="844" y2="235" stroke="#64748b" stroke-width="2.2" marker-end="url(#arrGray)"/>
+    <text x="457" y="160" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
+    <text x="771" y="160" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="700" fill="#64748b">→</text>
 
-    <!-- Stage 3 -->
-    <rect x="848" y="160" width="228" height="150" rx="14" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
-    <rect x="862" y="172" width="118" height="20" rx="10" fill="#7c3aed"/>
-    <text x="921" y="186" text-anchor="middle" font-family="{FONT}" font-size="10.5" font-weight="700" fill="#ffffff">Stage 3 · E2E 구조</text>
-    <text x="862" y="214" font-family="{FONT}" font-size="15" font-weight="700" fill="#0f172a">미분가능 공간 병목</text>
-    <text x="862" y="236" font-family="{FONT}" font-size="11.5" fill="#334155">• 문자열 파싱 없는 E2E 제어</text>
-    <text x="862" y="255" font-family="{FONT}" font-size="11.5" fill="#334155">• 외형 암기 오류 27.4%→0.0%</text>
-    <text x="862" y="276" font-family="{FONT}" font-size="12" font-weight="700" fill="#6d28d9">미학습 정지 18.6% → 100%</text>
-    <text x="862" y="297" font-family="{FONT}" font-size="10.5" fill="#64748b">Differentiable Spatial CoT</text>
+    <!-- ROW 1: 아키텍처 -->
+    <rect x="24" y="186" width="118" height="82" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="224" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">아키텍처</text>
+    <text x="83" y="242" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">VLM + Action</text>
 
-    <!-- 우측 하단: 핵심 역량 태그 -->
-    <rect x="330" y="330" width="174" height="34" rx="17" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="417" y="352" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e293b">On-Device VLA</text>
+    <rect x="{c1}" y="186" width="{cw}" height="82" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e3a8a">OWLv2 + Kosmos-2 (Frozen)</text>
+    <text x="{c1+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 이산 8방향 MLP 액션 헤드</text>
+    <text x="{c1+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#1d4ed8">전체의 0.25% (1.128M / 459M) 학습</text>
 
-    <rect x="516" y="330" width="186" height="34" rx="17" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="609" y="352" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e293b">Real-Robot Control</text>
+    <rect x="{c2}" y="186" width="{cw}" height="82" rx="10" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#064e3b">Florence-2 (&lt;loc&gt; 문자열 파싱)</text>
+    <text x="{c2+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 연속 Flow Matching (PiZeroFM)</text>
+    <text x="{c2+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#047857">비미분 2단계 모듈러 + S2 안전 감속</text>
 
-    <rect x="714" y="330" width="174" height="34" rx="17" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="801" y="352" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e293b">Generalization Audit</text>
+    <rect x="{c3}" y="186" width="{cw}" height="82" rx="10" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="210" font-family="{FONT}" font-size="12" font-weight="700" fill="#4c1d95">Florence-2 Soft-Loc (Softmax 기댓값)</text>
+    <text x="{c3+14}" y="231" font-family="{FONT}" font-size="11.2" fill="#334155">→ 문자열 파싱 0% · Action 직결</text>
+    <text x="{c3+14}" y="252" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#6d28d9">완전 미분 E2E (Decoder 역전파 가능)</text>
 
-    <rect x="900" y="330" width="176" height="34" rx="17" fill="#f1f5f9" stroke="#cbd5e1"/>
-    <text x="988" y="352" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#1e293b">Multi-Agent &amp; RAG</text>
+    <!-- ROW 2: 구동 환경 -->
+    <rect x="24" y="276" width="118" height="66" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="307" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">구동 환경</text>
+    <text x="83" y="325" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">실기 vs 오프라인</text>
+
+    <rect x="{c1}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#1d4ed8">Jetson Orin NX 단독 온디바이스</text>
+    <text x="{c1+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">10Hz 비동기 제어 + Jitter Hold (실기)</text>
+
+    <rect x="{c2}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#047857">Serbot 2 + 추론 서버 (GPU 실기)</text>
+    <text x="{c2+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">로봇-서버 분산 폐루프 (누적 600+회)</text>
+
+    <rect x="{c3}" y="276" width="{cw}" height="66" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="302" font-family="{FONT}" font-size="12" font-weight="700" fill="#6d28d9">GPU 오프라인 재생 검증 (GB10)</text>
+    <text x="{c3+14}" y="324" font-family="{FONT}" font-size="11" fill="#475569">1,458 실기 프레임 평가 (실기 미실시)</text>
+
+    <!-- ROW 3: 검증 수치 -->
+    <rect x="24" y="350" width="118" height="120" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="405" text-anchor="middle" font-family="{FONT}" font-size="12.5" font-weight="700" fill="#0f172a">검증 수치</text>
+    <text x="83" y="423" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#64748b">정량 근거</text>
+
+    <rect x="{c1}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="{c1+14}" y="376" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 훈련 위치 100회: <tspan fill="#1d4ed8">95.0% (95/100)</tspan></text>
+    <text x="{c1+14}" y="400" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 미학습 포함 300회: <tspan fill="#1d4ed8">92.0% (276/300)</tspan></text>
+    <text x="{c1+14}" y="424" font-family="{FONT}" font-size="11.2" fill="#334155">• 오프라인 오류 630건 중</text>
+    <text x="{c1+24}" y="444" font-family="{FONT}" font-size="11.2" font-weight="700" fill="#334155">81.4%가 대체 가능 행동 규명</text>
+
+    <rect x="{c2}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#a7f3d0"/>
+    <text x="{c2+14}" y="374" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 11/25 실기: <tspan fill="#047857">45/45 성공 · 접촉 0건</tspan></text>
+    <text x="{c2+24}" y="392" font-family="{FONT}" font-size="10.2" fill="#64748b">(바구니 30 + 미학습 의자 15)</text>
+    <text x="{c2+14}" y="414" font-family="{FONT}" font-size="11.2" fill="#334155">• 실기 지연: <tspan font-weight="700" fill="#047857">397.1ms</tspan> (GB10 벤치 285ms)</text>
+    <text x="{c2+14}" y="436" font-family="{FONT}" font-size="11.2" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#047857">27.4% → 0.0%</tspan></text>
+    <text x="{c2+14}" y="458" font-family="{FONT}" font-size="10.5" fill="#64748b">• 언어 게이트(V4R): 오명령 99.5% 정지</text>
+
+    <rect x="{c3}" y="350" width="{cw}" height="120" rx="10" fill="#ffffff" stroke="#ddd6fe"/>
+    <text x="{c3+14}" y="374" font-family="{FONT}" font-size="11.8" font-weight="700" fill="#0f172a">• 미학습 의자 정지: <tspan fill="#6d28d9">18.6% → 100%</tspan></text>
+    <text x="{c3+24}" y="392" font-family="{FONT}" font-size="10.2" fill="#64748b">(Hidden → Soft-Loc+ / Joint 97.7%)</text>
+    <text x="{c3+14}" y="414" font-family="{FONT}" font-size="11.2" fill="#334155">• 반사실 셔플 뒤집힘: <tspan font-weight="700" fill="#6d28d9">14.9% → 0.0%</tspan></text>
+    <text x="{c3+14}" y="436" font-family="{FONT}" font-size="11.2" fill="#334155">• GB10 벤치 지연: <tspan font-weight="700" fill="#6d28d9">283.8ms</tspan> (종단 297ms)</text>
+    <text x="{c3+14}" y="458" font-family="{FONT}" font-size="10.5" fill="#64748b">• Open-Vocab 검출률 99.8% 유지</text>
+
+    <!-- ROW 4: 발견한 한계 -> 다음 세대 돌파 (연구 노력 & 진화 근거) -->
+    <rect x="24" y="478" width="118" height="66" rx="10" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="83" y="508" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#92400e">한계 → 돌파</text>
+    <text x="83" y="526" text-anchor="middle" font-family="{FONT}" font-size="10" fill="#b45309">진화 동기</text>
+
+    <rect x="{c1}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c1+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">한계:</tspan> 단일 객체 · 이산 8방향 제어</text>
+    <text x="{c1+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#047857">→ 2세대: 다물체 일반화·연속 제어 돌파</text>
+
+    <rect x="{c2}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c2+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">한계:</tspan> 문자열 파싱 경계에서 미분 단절</text>
+    <text x="{c2+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#6d28d9">→ 3세대: Soft-Loc 미분 직결로 돌파</text>
+
+    <rect x="{c3}" y="478" width="{cw}" height="66" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="{c3+14}" y="503" font-family="{FONT}" font-size="11" fill="#92400e"><tspan font-weight="700">과제:</tspan> 오프라인 검증 완료 · 실기 미실시</text>
+    <text x="{c3+14}" y="525" font-family="{FONT}" font-size="11" font-weight="700" fill="#1d4ed8">→ 다음: 자율정지 E2E 실기 주행 검증</text>
+
+    <!-- ROW 5: 현재 단계 -->
+    <rect x="24" y="552" width="118" height="36" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="83" y="575" text-anchor="middle" font-family="{FONT}" font-size="12" font-weight="700" fill="#0f172a">현재 단계</text>
+
+    <rect x="{c1}" y="552" width="{cw}" height="36" rx="10" fill="#dbeafe"/>
+    <text x="{c1 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#1e40af">JKSCI 1저자 투고 · 심사 중</text>
+
+    <rect x="{c2}" y="552" width="{cw}" height="36" rx="10" fill="#d1fae5"/>
+    <text x="{c2 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#065f46">실기 검증 완료 · EG1 vs EG2 비교 논문 진행</text>
+
+    <rect x="{c3}" y="552" width="{cw}" height="36" rx="10" fill="#ede9fe"/>
+    <text x="{c3 + cw/2}" y="575" text-anchor="middle" font-family="{FONT}" font-size="11.5" font-weight="700" fill="#5b21b6">오프라인 5축 검증 완료 · 실기 확장 준비</text>
     '''
     _save_svg_and_png("01_profile_roadmap", _svg_shell(W, H, body, defs))
 
