@@ -226,3 +226,4 @@ data/fallback_verify_labeled/
 
 # Local Notion API credentials (never commit)
 .env.notion
+!docs/v5/portfolio_kit/*.png
