@@ -185,4 +185,43 @@ def tabs(tbl, H, st):
           tbl(["내용", "위치"], [["11/16 a3-s2 실기 45세션(로봇 서버 보고)", "<code>docs/v5/egvla2_fm/a3c/real_1116_*</code>, 원본 <code>_received_1116_eg2_14/</code>(미커밋)"], ["a3 vs a3-s2 비교 계산", "<code>real_1116_vs_1113.json</code> (<code>scripts/a3c_real_1116_analysis.py</code>)"], ["시뮬레이션(재생) 값", "<code>ch82_sim.json</code> (<code>scripts/ch82_compute.py</code>)"],
                       ["학습 에피소드 정지 면적", "<code>ch82_train_stoparea.json</code> (<code>scripts/ch82_train_stoparea.py</code>)"], ["시드·가림 비율 비교, 후보 검증, 방향 차이", "<code>eval_seeds.json</code>, <code>verify_seeds.json</code>, <code>dirdiff_all.json</code>"], ["계획서", "<code>plan_20261115_a3_improvement.md</code> §8~11, <code>plan_20261116_soda_test_protocol.md</code>"]]),
           P(f'새 데이터: <code>replay_1116.json</code>, <code>replay_1116_stop_by_area.json</code>, 프레임 <code>figures/objtest_1116/</code>(588장, gitignore) · 스크립트 <code>scripts/replay_1116.py</code>, <code>a3c_replay_1116_analysis.py</code><br>페이지: <a href="object_test_compare_1113.html" style="color:{B}">11/13 동시 비교 재생</a> · <a href="object_test_compare_1113_standalone.html" style="color:{B}">단독 실행판(실기 프레임 870장 내장, 14MB, 폴더 없이 열림)</a> · <a href="model_registry.html" style="color:{B}">모델 레지스트리</a> · <a href="research_story.html#ch81" style="color:{B}">CH81 종합 브리핑</a>')]
-    return [("t1", "📌 요약·판단", t1), ("t2", "🤖 실기 비교(11/13 vs 11/16)", t2), ("t3", "🧪 시뮬레이션 대조", t3), ("t4", "🖼 프레임 대조", t4), ("t5", "⚖ 선택지·판단", t5), ("t6", "📎 근거·링크", t6)]
+    # ── t7 11/25 최종 결말 (MOD-DR-Safe 45/45, 접촉 0건 & 최신 도착 사진 6장)
+    r25_p = ROOT / "docs/v5/egvla2_fm/real_1125_analysis.json"
+    sbc_p = ROOT / "docs/v5/egvla2_fm/step_bc_results.json"
+    t7 = [H("1. CH82 최종 결말 — 선택지 C-2(a3-ag23) + MOD-DR-Safe로 11/25 실기 45/45 (접촉 0건) 달성")]
+    if r25_p.exists():
+        r25 = json.loads(r25_p.read_text(encoding="utf-8"))
+        tot, bsk, chr_ = r25["total"], r25["basket"], r25["chair"]
+        t7 += [
+            tbl(["시기 · 모델", "실기 성공률", "접촉 의심 (max_area≥0.50)", "완전 충돌 (≥0.90)", "실기 종단 지연", "핵심 판정"], [
+                ["11/13 `a3` (배포 기준선)", "49/65 (의자 중앙 0/5)", "미기록 (바구니 0.23 정지)", "–", "~945ms (beam3)", st("의자 비출발", R)],
+                ["11/16~18 `a3-s2` (시드2)", "45/45 · 61/61", "바구니 20~50% (접촉 보고 6건)", "11/17 2/15 (13.3%)", "~875ms (beam3)", st("출발 OK · 접촉 잔존", Y)],
+                ["11/24 `V4` (무감속 대조군)", "24/30 (80.0%)", "12/30 (40.0%)", "3/30 (10.0%)", "~945ms (beam3)", st("고속 무감속 충돌", R)],
+                ["<b>11/25 `MOD-DR-Safe` (`a3-ag23`+S2) ★</b>", f"<b>{tot['n']}/{tot['n']} (100.0%)</b><br>(바구니 {bsk['n']} · 의자 {chr_['n']})", f"<b>{tot['contact_ge50_n']}/{tot['n']} (0.0%)</b>", f"<b>{tot['collision_ge90_n']}/{tot['n']} (0.0%)</b>", f"<b>{tot['lat_med_ms']}ms</b> (2.3x+)", st("완전 해결 ★", G)],
+            ]),
+            P(f"<b>2중 감속 &amp; 선제 정지 실측</b>: 45/45 전 세션에서 컨트롤러(<code>near_area=0.25</code>) 개입 직전에 <code>a3-ag23</code> 모델 자체가 학습 기준(<code>0.23</code>)에 맞춰 먼저 <code>idle</code> 정지를 출력(바구니 첫 <code>idle</code> <code>{bsk['first_idle_area_med']}</code>, 의자 <code>{chr_['first_idle_area_med']}</code>)했고, S2 선제 감속(<code>0.14→0.25</code>)이 물리 관성을 사전 제동하여 <b>접촉 0건</b>을 달성했다."),
+            H("2. 2026-11-25 최신 실기 도착 사진 6장 (바구니 3위치 · 의자 3위치)"),
+        ]
+        rep_html = []
+        for rep in r25["representatives"]:
+            sid = rep["sid"]
+            dt = f"{sid[:4]}-{sid[4:6]}-{sid[6:8]} {sid[9:11]}:{sid[11:13]}:{sid[13:15]}"
+            col_b = B if rep["obj"] == "바구니" else "#c084fc"
+            rep_html.append(
+                f'<div style="background:#0c1527;border:1px solid #1e3050;border-radius:10px;padding:8px">'
+                f'<div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:5px"><b style="color:{col_b}">{rep["obj"]} · {rep["track"]}</b><span style="color:#94a3b8">{dt}</span></div>'
+                f'<img src="{rep["img_rel"]}" alt="{rep["obj"]}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block"/>'
+                f'<div style="font-size:0.72rem;color:#cbd5e1;margin-top:5px">첫 <code>idle</code> 면적 <b>{rep["first_idle_area"]}</b> → 최종 <b>{rep["last_area"]}</b> · 지연 <code>{rep["lat_ms"]}ms</code> ({rep["steps"]} steps)</div>'
+                f'</div>'
+            )
+        t7.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:8px 0">' + "".join(rep_html) + "</div>")
+    if sbc_p.exists():
+        sbc = json.loads(sbc_p.read_text(encoding="utf-8"))
+        sb = sbc.get("Step B (A3C_Y2_s0)", {})
+        t7 += [
+            H("3. 후속 개선 (교수님 피드백: 의자 정지 거리 단축) &amp; 논문 비교 계획"),
+            P(f"11/25 실기에서 의자는 덩치가 커서 <code>y2=0.819</code>(바닥까지 18% 여유)에서 이미 <code>area=0.287</code>에 도달해 바구니(<code>y2=1.000</code>)보다 멀리 멈추는 현상이 확인되었다. 이를 풀기 위해 ① <code>A3C_AG28_s0.pt</code>(<code>stop_area=0.28</code>, 조기정지 <code>25.8%→0.0%</code>)와 ② 바닥 접지선 기반 <code>A3C_Y2_s0.pt</code>(11/25 바구니 정지 <b>{sb.get('stop_1125_basket_arrival_pct')}%</b> · 의자 <code>y2=0.82</code> 정지 <b>{sb.get('stop_1125_chair_arrival_pct')}%</b>로 더 가까이 진입, 셔플 뒤집힘 <b>{sb.get('vis_shuffle_flip_pct')}%</b>)를 학습해 <code>soda</code>로 전달 완료했다."),
+            P(f'상세 보고서: <a href="a3_lineage.html" style="color:{G}"><b>🧬 A3 전용 진화 계보</b></a> · <a href="report_261126_egvla.html#sec6" style="color:{B}"><b>📊 261126 실험보고</b></a> · <a href="paper_egvla1_vs_egvla2_plan.html" style="color:{Y}"><b>📝 EGVLA1 vs EGVLA2 논문 실기 계획</b></a>'),
+        ]
+
+    return [("t1", "📌 요약·판단", t1), ("t2", "🤖 실기 비교(11/13 vs 11/16)", t2), ("t3", "🧪 시뮬레이션 대조", t3), ("t4", "🖼 프레임 대조", t4), ("t5", "⚖ 선택지·판단", t5), ("t7", "🏆 11/25 최종 결말·사진", t7), ("t6", "📎 근거·링크", t6)]

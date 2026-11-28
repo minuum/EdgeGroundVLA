@@ -184,6 +184,9 @@ def main() -> None:
     beam = _load("beam_bench.json")
     ta = _load("track_a_dec1pass_results.json")
     fam_cmp = _load("family_arch_compare.json")
+    audit = _load("overfitting_audit.json")
+    r1125 = _load("real_1125_analysis.json")
+    sbc = _load("step_bc_results.json")
     scenes = fam_cmp.get("scenes", [])
 
     b3_ms = beam.get("beam3_fp32 (현행 기준)", {}).get("latency_med_ms", 590.7)
@@ -247,6 +250,8 @@ def main() -> None:
     ]
     if a2_zs:
         pts.append(("SoftLoc + AG23 (29k)", sl_ms, a2_zs["ang_med_vs_a3"], "#f472b6", f"{sl_ms}ms · {f_deg(a2_zs,'ang_med_vs_a3')} · 바구니/의자 100/100%"))
+    if a2_jt:
+        pts.append(("EG3-11 SoftLoc-Joint ★", sl_ms, a2_jt["ang_med_vs_a3"], "#a855f7", f"{sl_ms}ms · {f_deg(a2_jt,'ang_med_vs_a3')} · OV {a2_jt.get('open_vocab_1113_det_rate',0)*100:.1f}%"))
 
     t3_rows = [
         ["MOD", "MOD-A3 (`a3`, EG2-09)", f"{b3_ms}ms (1.00x)", "0.00° (100%)", "0% / 4%", "0.0%", "80% / 58%", "현행 배포 (beam=3)"],
@@ -300,7 +305,64 @@ def main() -> None:
         ),
     ]
 
+    # ── Tab 6: 11/25 최신 실기 사진 · 과적합 감사 · EG3-11 & Y2 업데이트 (2026-11-28) ──
+    audit_tbl_rows = []
+    for mname, r in audit.items():
+        audit_tbl_rows.append([
+            mname,
+            f"{r['basket_center_go']:.1f}% vs {r['chair_center_go']:.1f}% (격차 {r['unseen_go_gap_pp']:.1f}%p)",
+            f"{r['basket_ge25_stop']:.1f}% vs {r['chair_ge25_stop']:.1f}% (격차 {r['unseen_stop_gap_pp']:.1f}%p)",
+            f"{r['vis_swap_ang_deg']:.1f}° / <b>{r['vis_swap_stop_flip_pct']:.1f}%</b>",
+            f"{r['S_cx_deg']:+.1f}° / <b>{r['S_area_pp']:+.1f}%p</b>",
+            r["verdict"],
+        ])
+    photo_cmp_1125 = (
+        '<div style="background:#0c1527;border:1px solid #1e3050;border-radius:10px;padding:12px;margin:10px 0">'
+        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">'
+        '<b style="font-size:0.86rem;color:#6ee7b7">📸 2026-11-25 MOD-DR-Safe 최신 실기 도착 사진 (45/45 성공 · 접촉 0건 · 397.1ms) — 예측 BBox &amp; 바닥선 y2 대조</b>'
+        '<label style="font-size:0.74rem;color:#86efac;background:#0f291e;border:1px solid #166534;padding:2px 8px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">'
+        '<input type="checkbox" checked onchange="document.querySelectorAll(\'.ch83-y2-ov\').forEach(el=>el.style.display=this.checked?\'block\':\'none\')" style="accent-color:#4ade80;margin:0">'
+        '<span>BBox &amp; y2 선 표시</span></label></div>'
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">'
+        '<div><div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;border:1px solid #233252">'
+        '<img src="figures/real_1125/20261125_152041_바구니_trackF_center.jpg" alt="11/25 바구니 도착" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block"/>'
+        '<svg class="ch83-y2-ov" viewBox="0 0 416 234" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">'
+        '<rect x="68.5" y="122.4" width="253.9" height="108.0" fill="rgba(56,189,248,0.10)" stroke="#38bdf8" stroke-width="2.6"/>'
+        '<text x="73" y="117" fill="#38bdf8" font-size="10.5" font-weight="800">F2 BBox (cx=0.47, a=0.282)</text>'
+        '<line x1="0" y1="231" x2="416" y2="231" stroke="#4ade80" stroke-width="3" stroke-dasharray="6 4"/>'
+        '<rect x="218" y="210" width="194" height="18" rx="4" fill="rgba(6,40,30,0.88)"/>'
+        '<text x="224" y="223" fill="#4ade80" font-size="10" font-weight="800">바닥선 y2 ≈ 1.00 (바닥 딱 닿음)</text></svg></div>'
+        '<div style="font-size:0.75rem;color:#cbd5e1;margin-top:4px"><b>바구니 (30/30, 396.5ms)</b>: 첫 <code>idle</code> 0.237 → 최종 0.295 (<code>y2=1.000</code>)</div></div>'
+        '<div><div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;border:1px solid #233252">'
+        '<img src="figures/real_1125/20261125_155938_의자_trackF_center.jpg" alt="11/25 의자 도착" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block"/>'
+        '<svg class="ch83-y2-ov" viewBox="0 0 416 234" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">'
+        '<rect x="124.0" y="59.8" width="216.7" height="135.0" fill="rgba(251,191,36,0.10)" stroke="#fbbf24" stroke-width="2.6"/>'
+        '<text x="128" y="54" fill="#fbbf24" font-size="10.5" font-weight="800">F2 BBox (cx=0.56, a=0.301)</text>'
+        '<line x1="0" y1="191.4" x2="416" y2="191.4" stroke="#e879f9" stroke-width="2.8" stroke-dasharray="6 4"/>'
+        '<rect x="14" y="196" width="236" height="18" rx="4" fill="rgba(46,16,101,0.88)"/>'
+        '<text x="20" y="209" fill="#f0abfc" font-size="10" font-weight="800">바닥선 y2 = 0.82 (바닥까지 18% 남음!)</text></svg></div>'
+        '<div style="font-size:0.75rem;color:#cbd5e1;margin-top:4px"><b>의자 (15/15, 410.8ms)</b>: 첫 <code>idle</code> 0.239 → 최종 0.287 (<code>y2=0.819</code>)</div></div>'
+        '</div></div>'
+    )
+    sb = sbc.get("Step B (A3C_Y2_s0)", {})
+    sc_r = sbc.get("Step C (EG4-08_V4R_Y2_s0)", {})
+    tab6 = [
+        P('<b>2026-11-24~28 최종 보완 분석</b>: ① 전 모델 7종 과적합 정밀 감사(`overfitting_audit.json`), ② 11/25 `MOD-DR-Safe` 실기 45/45(접촉 0건) 최신 도착 사진 &amp; `y2` 바닥 접지선 분석, ③ 교수님 피드백 해결 모델(`AG28`, `A3C_Y2_s0`) 및 `EGVLA1` vs `EGVLA2` 비교 논문 계획을 통합한다. (<a href="report_261126_egvla.html"><b>📊 261126 보고서</b></a> · <a href="paper_egvla1_vs_egvla2_plan.html"><b>📝 EG1 vs EG2 논문 실기 계획</b></a>)'),
+        photo_cmp_1125,
+        tbl(["모델 (과적합 4축 감사)", "출발 격차 (바구니 vs 의자)", "정지 격차 (바구니 vs 의자)", "시각 셔플 (각도/뒤집힘)", "기하 반응성 (S_cx/S_area)", "판정"], audit_tbl_rows) if audit_tbl_rows else "",
+        tbl(
+            ["후속 정지거리 개선 모델", "정지 설계", "11/25 바구니 도착(y2=1.00) 정지", "11/25 의자 도착(y2=0.82) 정지", "시각 셔플 뒤집힘 / 비고"],
+            [
+                ["`A3C_AG23_s0` (11/25 실기 45/45)", "`area ≥ 0.23` (`ramp 0.18`)", "100.0%", "100.0% (원거리 조기 정지)", "0.0% · 접촉 0건 확정"],
+                ["`A3C_AG28_s0` (Step A, soda 대기)", "`area ≥ 0.28` (`ramp 0.22`)", "0.20~0.25 정지 0.0%", "≥0.30 정지 89.1%", "0.0% · 동환님 1순위 실기 예정"],
+                ["<b>`A3C_Y2_s0` (Step B, soda 대기) ★</b>", "<b>바닥선 `y2 ≥ 0.95` (`ramp 0.86`)</b>", f"<b>{sb.get('stop_1125_basket_arrival_pct')}%</b>", f"<b>{sb.get('stop_1125_chair_arrival_pct')}% (더 가까이 진입!)</b>", f"{sb.get('vis_shuffle_flip_pct')}% · 물체 크기 무관 실거리 정지"],
+                ["`EG4-08_V4R_Y2_s0` (Step C, 1차)", "`1536-d` 텍스트 + `V4R` + `y2`", f"{sc_r.get('stop_1125_basket_arrival_pct')}% (보완 예정)", f"{sc_r.get('stop_1125_chair_arrival_pct')}%", f"비목표 차단 <b>{sc_r.get('neg_instruction_stop_pct')}%</b> · 바구니 출발 100%"],
+            ],
+        ) if sbc else "",
+    ]
+
     tabs = [
+        ("latest", "🏆 11/25 사진·감사·최신", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab6)))]),
         ("photos", "📸 실기 6장면 E2E 비교", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab1)))]),
         ("verdict", "🔍 E2E 대체 가능성·특징", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab2)))]),
         ("gen_sep", "🏛️ EGVLA2 vs EGVLA3 분리", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab5)))]),
@@ -308,28 +370,27 @@ def main() -> None:
         ("deploy", "⚡ MOD-DR-Fast/Safe", [("html", re.sub(r"`([^`]+)`", r"<code>\1</code>", "".join(tab4)))]),
     ]
     inner = CC.tabs_html("ch83", tabs, "", {})
-    title = "E2E 대체 가능성 심층 분석 & 3계열 파레토 — MOD vs ENC-E2E vs VLM-E2E (Soft-Loc)"
+    title = "E2E(EG3-11) · 과적합 감사 · 11/25 실기 45/45 사진 대조 & 바닥선(y2) 해법"
     sub = (
-        "실제 로봇 세션 사진 6장 위에서 MOD · ENC-E2E · VLM-E2E(Hidden/Soft-Loc)의 방향과 정지 판단을 직접 대조하고, "
-        "현행 A3를 E2E로 대체할 수 있는지 모델별 특징·한계·조건을 정량 판정했다."
+        "3계열(MOD · ENC-E2E · VLM-E2E) 6장면 사진 오버레이 + EG3-11 공동 역전파(grad=0.142, OV 99.8%) + "
+        "전 모델 7종 과적합 감사 + 11/25 MOD-DR-Safe 실기 45/45(접촉 0건) 도착 사진 및 바닥선(y2) 정지 해법까지 최신화했다."
     )
-    blk = CC.chapter_block(83, "#c084fc", "#e9d5ff", title, sub, "2026-11-22", inner)
+    blk = CC.chapter_block(83, "#c084fc", "#e9d5ff", title, sub, "2026-11-22 ~ 11-28", inner)
 
-    v2_str = f", SoftLoc+(EG3-10) {f_deg(a2_v2,'ang_med_vs_a3')}·바구니/의자 정지 100%/100%, ZeroShot AG23 결합 시 {f_deg(a2_zs,'ang_med_vs_a3')}" if a2_v2 and a2_zs else ""
+    v2_str = f", EG3-11 SoftLoc-Joint {f_deg(a2_jt,'ang_med_vs_a3')}·바구니/의자 100%/98%·OV 99.8%·grad=0.142" if a2_jt else ""
     summary_text = (
-        f"실기 6장면 사진 위 E2E vs 모듈러 직접 대조 및 대체 가능성 판정. "
-        f"ENC-E2E-1(B1, 25.13°)·ENC-E2E-Aux는 Open-Vocab 상실로 대체 불가; "
-        f"VLM-E2E-Hidden(BBox=0, {f_deg(a1,'ang_med_vs_a3')})은 바구니 정지 100%이나 미학습 의자 정지 {f_pct(a1,'chair_ge25_stop_16')}로 다물체 대체 불가; "
-        f"미분가능 VLM-E2E-SoftLoc({sl_ms}ms, 2.08x)은 의자 정지 {f_pct(a2,'chair_ge25_stop_16')}로 폭등{v2_str}하며 조건부 실기 대체 가능(학술 E2E 1순위). "
-        f"즉시 운영 1순위는 MOD-DR-Fast/Safe(beam=1 fp16 {b1_ms}ms, 2.09x + S2 접근 감속)."
+        f"실기 6장면 E2E 대조 + 전 모델 과적합 감사(a3 셔플 뒤집힘 27.4% → a3-ag23·EG3-11 0.0%) + 11/25 MOD-DR-Safe 실기 45/45(접촉 0건, 397.1ms) 최신 사진 반영. "
+        f"VLM-E2E-Hidden({f_deg(a1,'ang_med_vs_a3')})은 의자 정지 {f_pct(a1,'chair_ge25_stop_16')}로 다물체 대체 불가; "
+        f"미분가능 VLM-E2E-SoftLoc({sl_ms}ms, 2.08x){v2_str}. "
+        f"교수님 피드백(의자 원거리 정지 y2=0.82) 해법으로 AG28 및 바닥선 A3C_Y2_s0(바구니 100%·의자 y2=0.82 통과) 학습·soda 전달 및 EGVLA1 vs EGVLA2 공통 9경로 논문 계획 확정."
     )
-    row = CC.summary_row(83, "E2E 대체 가능성 · 6장면 사진 대조(11/22)", summary_text, "#c084fc")
+    row = CC.summary_row(83, "E2E(EG3-11) · 과적합 감사 · 11/25 실기 사진(11/28)", summary_text, "#c084fc")
 
     s = HTML.read_text(encoding="utf-8")
-    s = CC.insert_chapter(s, 83, blk, "<!--/CH82-->", title, "🧬 CH83 E2E 분석·사진", "E2E·파레토", "#c084fc", "#e9d5ff", "#c084fc", "#240f3b", row, 82)
+    s = CC.insert_chapter(s, 83, blk, "<!--/CH82-->", title, "🧬 CH83 E2E·11/25·감사", "최신·사진", "#c084fc", "#e9d5ff", "#c084fc", "#240f3b", row, 82)
     s = CC.replace_toc_label(s, 83, title)
-    s = CC.replace_summary_row(s, 83, "E2E 대체 가능성 · 6장면 사진 대조(11/22)", summary_text, "#c084fc")
-    s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH83 · 2026-11-22)", s, count=1)
+    s = CC.replace_summary_row(s, 83, "E2E(EG3-11) · 과적합 감사 · 11/25 실기 사진(11/28)", summary_text, "#c084fc")
+    s = re.sub(r"현재 상태 \(CH1→CH\d+ · [0-9-]+\)", "현재 상태 (CH1→CH83 · 2026-11-28)", s, count=1)
     HTML.write_text(s, encoding="utf-8")
 
     __import__("story_publish").publish()
