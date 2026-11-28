@@ -255,11 +255,47 @@ def _sparkbar(x: float, y: float, w: float, pct: float, col: str) -> str:
     )
 
 
+def _wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """95% Wilson 신뢰구간(백분율)을 계산한다."""
+    p = k / n
+    d = 1.0 + z * z / n
+    c = (p + z * z / (2.0 * n)) / d
+    h = z * math.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / d
+    return max(0.0, c - h) * 100.0, min(1.0, c + h) * 100.0
+
+
+def _omni_robot_icon(x: float, y: float, col: str) -> str:
+    """선명한 3-DoF Kiwi-Drive 옴니휠 로봇 벡터 아이콘 (뭉개진 저해상도 썸네일 대체)."""
+    return (
+        f'<g transform="translate({x},{y})">'
+        f'<circle cx="17" cy="21" r="13" fill="#F8FAFC" stroke="{col}" stroke-width="1.3"/>'
+        # 3개 옴니휠 (120도 간격)
+        f'<rect x="13" y="5" width="8" height="3.2" rx="1" fill="{col}"/>'
+        f'<rect x="3" y="25" width="8" height="3.2" rx="1" fill="{col}" transform="rotate(-60 7 26.6)"/>'
+        f'<rect x="23" y="25" width="8" height="3.2" rx="1" fill="{col}" transform="rotate(60 27 26.6)"/>'
+        # 진행 방향 화살표
+        f'<line x1="17" y1="21" x2="17" y2="11" stroke="#111827" stroke-width="1.6" stroke-linecap="round"/>'
+        f'<polygon points="17,9 14.5,13 19.5,13" fill="#111827"/>'
+        f'<circle cx="17" cy="21" r="2.2" fill="#111827"/>'
+        f'</g>'
+    )
+
+
+def _output_robot_box(y: float, bh: float, col: str, l1: str, l2: str, l3: str) -> str:
+    """Figure 1 (c) 우측 Output 모듈 박스 (선명한 3-DoF 옴니휠 벡터 아이콘)."""
+    return (
+        f'<rect x="926" y="{y}" width="138" height="{bh}" rx="2" fill="#FFFFFF" stroke="{col}" stroke-width="1.3"/>'
+        f'{_omni_robot_icon(932, y + 9, col)}'
+        f'<text x="971" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(l1)}</text>'
+        f'<text x="971" y="{y+33}" font-family="{PUB_MONO}" font-size="7.6" fill="#111827">{html.escape(l2)}</text>'
+        f'<text x="971" y="{y+49}" font-family="{PUB_FONT}" font-size="7.6" fill="#4B5563">{html.escape(l3)}</text>'
+    )
+
+
 def build_01_profile_roadmap() -> None:
-    """Figure 1: CVPR/ICRA Publication Style — (a) Same-Frame Inference, (b) Unified Table + Sparkbars, (c) High-Density Architecture & Gradient Flow."""
+    """Figure 1: CVPR/ICRA Publication Style — (a) Same-Frame Inference, (b) Unified Table, (c) Detailed Tensor & Gradient Flow."""
     W, H = 1100, 995
     same_img_uri = _b64_img("docs/v5/figures/inline/99f9060660c1394c.jpg")
-    serbot_uri = _b64_img("docs/v5/figures/figure2_v2_hardware_web.png")
 
     C1, C2, C3 = "#0072B2", "#009E73", "#D55E00"
     INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
@@ -274,7 +310,7 @@ def build_01_profile_roadmap() -> None:
         (0.281, 0.645, 0.027), C1, "",
         "EGVLA-1  (Modular VLA · Discrete MLP)",
         "OWLv2 cx=0.281", 0.0,
-        "Output: FORWARD  [1.15, 0.00]  (0.0 deg)",
+        "Output: FORWARD  [1.15, 0.00]  (0.0 deg, 8-way)",
     )
     f2 = _draw_pub_frame(
         px2, py, pw, ph, same_img_uri, "pubG2",
@@ -291,7 +327,7 @@ def build_01_profile_roadmap() -> None:
         "Output: [0.59, -0.32]  (-28.8 deg, E2E)",
     )
 
-    # (b) LaTeX Booktabs 통일 기준 비교표 (EGVLA-1 Jetson 실측 지연 정정: 1.02s fp16 / 528ms cache avg)
+    # (b) LaTeX Booktabs 통일 기준 비교표
     rows = [
         ("VLA Paradigm", "Modular VLA (2-Stage)", "Modular VLA (2-Stage)", "End-to-End VLA", None),
         ("VLM Backbone", "OWLv2 + Kosmos-2 (Frozen)", "Florence-2 (Frozen)", "Florence-2 (Decoder LoRA)", None),
@@ -335,7 +371,7 @@ def build_01_profile_roadmap() -> None:
     bot_y = ty0 + 30 + len(rows) * rh - 12
     tbl_svg.append(f'<line x1="36" y1="{bot_y}" x2="1064" y2="{bot_y}" stroke="{INK}" stroke-width="1.6"/>')
 
-    # (c) 3줄 고밀도 아키텍처 & 텐서 차원 & Gradient Flow 다이어그램
+    # (c) 3단 고밀도 아키텍처 & 텐서 흐름 & 선명한 옴니휠 아이콘
     cy_hdr = bot_y + 34
     bh = 60
     r1y, r2y, r3y = cy_hdr + 26, cy_hdr + 110, cy_hdr + 194
@@ -355,16 +391,6 @@ def build_01_profile_roadmap() -> None:
             f'<text x="158" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">RGB+Text</text>'
             f'<text x="158" y="{y+33}" font-family="{PUB_FONT}" font-size="8.0" fill="{MUT}">{html.escape(prompt_txt)}</text>'
             f'<text x="158" y="{y+49}" font-family="{PUB_MONO}" font-size="7.5" fill="#6B7280">1280x720</text>'
-        )
-
-    def _output_robot(y: float, cid: str, col: str, l1: str, l2: str, l3: str) -> str:
-        return (
-            f'<rect x="926" y="{y}" width="138" height="{bh}" rx="2" fill="#FFFFFF" stroke="{col}" stroke-width="1.3"/>'
-            f'<clipPath id="{cid}"><rect x="931" y="{y+7}" width="36" height="46" rx="1"/></clipPath>'
-            f'<image href="{serbot_uri}" x="931" y="{y+7}" width="36" height="46" preserveAspectRatio="xMidYMid cover" clip-path="url(#{cid})"/>'
-            f'<text x="972" y="{y+18}" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(l1)}</text>'
-            f'<text x="972" y="{y+33}" font-family="{PUB_FONT}" font-size="8.0" fill="{INK}">{html.escape(l2)}</text>'
-            f'<text x="972" y="{y+49}" font-family="{PUB_MONO}" font-size="7.4" fill="{MUT}">{html.escape(l3)}</text>'
         )
 
     arch_svg = [
@@ -391,7 +417,7 @@ def build_01_profile_roadmap() -> None:
         _arrow(694, r1y + 30, 718),
         _arch_box(720, r1y, 182, bh, "Discrete MLP Head", "argmax(p[8]) -> cls=1", "1.128M (0.25%) · <1ms", False, C1, "compass8"),
         _arrow(902, r1y + 30, 924),
-        _output_robot(r1y, "outG1", C1, "FORWARD", "[1.15, 0.0, 0.0]", "Jetson 10Hz ctrl"),
+        _output_robot_box(r1y, bh, C1, "FORWARD", "[1.15, 0.0, 0.0]", "Jetson 10Hz ctrl"),
 
         # Row 2: EGVLA-2
         f'<text x="36" y="{r2y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C2}">EGVLA-2</text>',
@@ -405,7 +431,7 @@ def build_01_profile_roadmap() -> None:
         _arrow(694, r2y + 30, 718),
         _arch_box(720, r2y, 182, bh, "Flow-Matching Head", "a: float[8x2] (K=8)", "PiZeroFM + 50% Swap", False, C2, "flow_traj"),
         _arrow(902, r2y + 30, 924),
-        _output_robot(r2y, "outG2", C2, "[0.64, -0.32]", "-26.4 deg + S2", "Real 397ms · 0c"),
+        _output_robot_box(r2y, bh, C2, "[0.64, -0.32]", "-26.4 deg + S2", "Real 397ms · 0c"),
 
         # Row 3: EGVLA-3
         f'<text x="36" y="{r3y + 24}" font-family="{PUB_FONT}" font-size="10.8" font-weight="700" fill="{C3}">EGVLA-3</text>',
@@ -418,7 +444,7 @@ def build_01_profile_roadmap() -> None:
         _arrow(694, r3y + 30, 718, C3, "feat"),
         _arch_box(720, r3y, 182, bh, "Flow-Matching Head", "a: float[8x2] (Joint)", "PiZeroFM + KL Reg.", False, C3, "flow_traj"),
         _arrow(902, r3y + 30, 924, C3),
-        _output_robot(r3y, "outG3", C3, "[0.59, -0.32]", "-28.8 deg E2E", "GB10 297ms"),
+        _output_robot_box(r3y, bh, C3, "[0.59, -0.32]", "-28.8 deg E2E", "GB10 297ms"),
 
         # Gradient Backprop Arc
         f'<path d="M 811,{r3y + bh} L 811,{r3y + bh + 20} L 353,{r3y + bh + 20} L 353,{r3y + bh + 3}" fill="none" stroke="{C3}" stroke-width="1.5" stroke-dasharray="4 2.5" marker-end="url(#gradArr)"/>',
@@ -436,14 +462,14 @@ def build_01_profile_roadmap() -> None:
     </marker>
   </defs>
   <rect x="0" y="0" width="{W}" height="{H}" fill="#FFFFFF"/>
-  <text x="36" y="34" font-family="{PUB_FONT}" font-size="12.5" font-weight="700" fill="{INK}">(a) Same-Frame Policy Inference  —  Input Prompt: &quot;go to the gray basket&quot;  (Target at left, cx = 0.28)</text>
+  <text x="36" y="34" font-family="{PUB_FONT}" font-size="12.5" font-weight="700" fill="{INK}">(a) Same-Frame Policy Inference (Single-Frame Snapshot)  —  Prompt: &quot;go to the gray basket&quot; (cx = 0.28)</text>
   <line x1="36" y1="43" x2="1064" y2="43" stroke="{RULE}" stroke-width="0.8"/>
   {f1}
   {f2}
   {f3}
   {"".join(tbl_svg)}
   {"".join(arch_svg)}
-  <text x="36" y="{H - 12}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 1. Evolution from Modular VLA (EGVLA-1/2) to End-to-End VLA (EGVLA-3): (a) same-frame inference, (b) unified evaluation, and (c) detailed tensor &amp; gradient flow.</text>
+  <text x="36" y="{H - 12}" font-family="{PUB_FONT}" font-size="9.0" fill="{MUT}">Figure 1. Evolution from Modular VLA (EGVLA-1/2) to End-to-End VLA (EGVLA-3). (a) Single-frame snapshot illustrating discrete 8-way quantization vs. continuous 2D steering; (b) unified evaluation; (c) tensor &amp; gradient flow.</text>
 </svg>'''
     _save_svg_and_png("01_profile_roadmap", svg_str)
 
@@ -457,25 +483,22 @@ def build_02_edgeground_vla_v1_v2() -> None:
     C1, C2, C3 = "#0072B2", "#009E73", "#D55E00"
     INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
 
-    # ── Panel (a): EGVLA-1 On-Device Real-Robot Success (N=300) ──
-    # 바 차트 좌표 (x=68..490, y=96..270)
+    # ── Panel (a): EGVLA-1 On-Device Real-Robot Success + 95% Wilson CI Error Bars ──
     ay_top, ay_bot = 104, 272
     ah = ay_bot - ay_top
     bars_a = [
-        ("pos1\n(Seen)", 95.0, "95/100", C1, 1.0),
-        ("pos2\n(-50 cm)", 91.0, "91/100", C1, 0.78),
-        ("pos3\n(+50 cm)", 90.0, "90/100", C1, 0.78),
-        ("Overall\n(N=300)", 92.0, "276/300", "#111827", 0.92),
+        ("pos1\n(Seen)", 95, 100, C1, 1.0),
+        ("pos2\n(-50 cm)", 91, 100, C1, 0.78),
+        ("pos3\n(+50 cm)", 90, 100, C1, 0.78),
+        ("Overall\n(N=300)", 276, 300, "#111827", 0.92),
     ]
     a_svg = [
-        f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) EGVLA-1: On-Device Real-Robot Success (Jetson Orin NX, N = 300)</text>',
+        f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) EGVLA-1: On-Device Real-Robot Success (Jetson Orin NX, 95% Wilson CI)</text>',
         f'<line x1="36" y1="43" x2="526" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
-        # Parameter Efficiency 인셋 콜아웃 (우상단)
-        f'<rect x="272" y="54" width="254" height="36" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
-        f'<text x="280" y="69" font-family="{PUB_FONT}" font-size="9.1" font-weight="700" fill="{C1}">Trained: 1.128M / 459M (0.25%)</text>',
-        f'<text x="280" y="83" font-family="{PUB_FONT}" font-size="8.2" fill="{MUT}">OWLv2 962ms fp16 (~528ms cache avg) · 10Hz ctrl</text>',
+        f'<rect x="268" y="52" width="258" height="36" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
+        f'<text x="276" y="67" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{C1}">Trained: 1.128M / 459M (0.25%)</text>',
+        f'<text x="276" y="81" font-family="{PUB_FONT}" font-size="8.1" fill="{MUT}">OWLv2 962ms fp16 (~528ms cache avg) · 10Hz ctrl</text>',
     ]
-    # Y축 눈금 (0, 50, 80, 100%)
     for pct in (0, 50, 80, 100):
         yy = ay_bot - ah * (pct / 100.0)
         dash = ' stroke-dasharray="3 2"' if pct > 0 else ""
@@ -484,17 +507,26 @@ def build_02_edgeground_vla_v1_v2() -> None:
         a_svg.append(f'<text x="64" y="{yy+3:.1f}" text-anchor="end" font-family="{PUB_MONO}" font-size="8.5" fill="{MUT}">{pct}%</text>')
     a_svg.append(f'<line x1="72" y1="{ay_top}" x2="72" y2="{ay_bot}" stroke="{INK}" stroke-width="1.0"/>')
 
-    for i, (lbl, val, sub, col, op) in enumerate(bars_a):
+    for i, (lbl, k, n, col, op) in enumerate(bars_a):
+        val = 100.0 * k / n
+        lo, hi = _wilson_ci(k, n)
         bx = 98 + i * 104
         bw = 56
         bh = ah * (val / 100.0)
         by = ay_bot - bh
+        ylo = ay_bot - ah * (lo / 100.0)
+        yhi = ay_bot - ah * (hi / 100.0)
+        cx_b = bx + bw / 2
         a_svg.append(f'<rect x="{bx}" y="{by:.1f}" width="{bw}" height="{bh:.1f}" fill="{col}" fill-opacity="{op}"/>')
-        a_svg.append(f'<text x="{bx+bw/2}" y="{by-5:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="9.6" font-weight="700" fill="{INK}">{val:.1f}%</text>')
-        a_svg.append(f'<text x="{bx+bw/2}" y="{by+14:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.0" fill="#FFFFFF">{sub}</text>')
+        # 95% Wilson CI error bar
+        a_svg.append(f'<line x1="{cx_b}" y1="{yhi:.1f}" x2="{cx_b}" y2="{ylo:.1f}" stroke="#111827" stroke-width="1.4"/>')
+        a_svg.append(f'<line x1="{cx_b-6}" y1="{yhi:.1f}" x2="{cx_b+6}" y2="{yhi:.1f}" stroke="#111827" stroke-width="1.4"/>')
+        a_svg.append(f'<line x1="{cx_b-6}" y1="{ylo:.1f}" x2="{cx_b+6}" y2="{ylo:.1f}" stroke="#111827" stroke-width="1.4"/>')
+        a_svg.append(f'<text x="{cx_b}" y="{yhi-5:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="9.4" font-weight="700" fill="{INK}">{val:.1f}%</text>')
+        a_svg.append(f'<text x="{cx_b}" y="{ylo+13:.1f}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.8" fill="#FFFFFF">{k}/{n}</text>')
         l1, l2 = lbl.split("\n")
-        a_svg.append(f'<text x="{bx+bw/2}" y="{ay_bot+15}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{l1}</text>')
-        a_svg.append(f'<text x="{bx+bw/2}" y="{ay_bot+28}" text-anchor="middle" font-family="{PUB_FONT}" font-size="8.3" fill="{MUT}">{l2}</text>')
+        a_svg.append(f'<text x="{cx_b}" y="{ay_bot+15}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{l1}</text>')
+        a_svg.append(f'<text x="{cx_b}" y="{ay_bot+28}" text-anchor="middle" font-family="{PUB_FONT}" font-size="8.3" fill="{MUT}">{l2}</text>')
 
     # ── Panel (b): EGVLA-2 Multi-Object Real-Robot Eval (11/25, N=45) ──
     b_svg = [
@@ -533,10 +565,10 @@ def build_02_edgeground_vla_v1_v2() -> None:
         f'<line x1="36" y1="361" x2="526" y2="361" stroke="{RULE}" stroke-width="0.8"/>',
     ]
     lat_items = [
-        ("GB10 GPU Benchmark (330 frames, beam_bench.json)", None, None, None, None),
+        ("Offline GPU Benchmark (GB10, 330 real frames)", None, None, None, None),
         ("beam=3 fp32 (Baseline)", 590.7, 960.0, "#9CA3AF", "590.7 ms"),
         ("beam=1 fp16 (MOD-DR-Fast)", 283.0, 960.0, C1, "283.0 ms  (2.09x)"),
-        ("Real-Robot Server (soda GPU, 11/25 45 real runs)", None, None, None, None),
+        ("Remote GPU Server (Real-Robot Loop, 11/25, N = 45)", None, None, None, None),
         ("beam=3 fp32 (Prior Real)", 945.0, 960.0, "#9CA3AF", "~945 ms"),
         ("beam=1 fp16 (11/25 Real)", 397.1, 960.0, C2, "397.1 ms  (2.3x+)"),
     ]
@@ -554,35 +586,56 @@ def build_02_edgeground_vla_v1_v2() -> None:
             ly += 28
     c_svg.append(f'<text x="36" y="618" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">* beam=1 fp16 preserves 99.7% BBox agreement vs. beam=3 (cx MAE 0.0016, E2E serve 285.3 ms on GB10).</text>')
 
-    # ── Panel (d): Offline Generalization & Safety Benchmarks (Booktabs) ──
-    d_rows = [
-        ("Unseen Chair Center-Start Go", "0.0% (a3)", "100.0% (a3-ag23)", 1.0, C2),
-        ("Unseen Chair Close-Stop (a>=0.25)", "30.2% (a3-s2)", "93.0% (a3-ag23)", 0.93, C2),
-        ("Steering Alignment vs. Baseline", "25.13 deg (B1)", "0.54 deg (98.7% L/R)", 0.987, C1),
-        ("Visual-Swap Stop Flip Rate", "27.4% (a3)", "0.0% (a3-ag23)", 0.0, C2),
-        ("Negative-Prompt Safety Stop", "0.0% (no text)", "99.5% (MOD-V4R)", 0.995, C1),
-        ("BBox Horizontal-Flip Defense", "86.0% (V4)", "94.3% (MOD-V4R)", 0.943, C1),
-    ]
-    dy0 = 398
-    drh = 35
+    # ── Panel (d): S2 Safe Deceleration Profile + Language Gate (Fig 3 중복 완전 제거!) ──
+    gx0, gy0, gw, gh = 610, 386, 444, 108
+    # X축: BBox area 0.00 -> 0.30, Y축: Velocity scale 0.0 -> 1.0
+    def _gx(a: float) -> float:
+        return gx0 + gw * (a / 0.30)
+    def _gy(v: float) -> float:
+        return gy0 + gh * (1.0 - v)
+
     d_svg = [
-        f'<text x="564" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(d) Offline Generalization &amp; Safety Audit (1,458 Real Frames)</text>',
-        f'<line x1="564" y1="{dy0-17}" x2="1064" y2="{dy0-17}" stroke="{INK}" stroke-width="1.5"/>',
-        f'<text x="564" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{INK}">Metric (Offline Replay)</text>',
-        f'<text x="792" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{MUT}">Baseline</text>',
-        f'<text x="904" y="{dy0}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C2}">Proposed (EGVLA-2)</text>',
-        f'<line x1="564" y1="{dy0+8}" x2="1064" y2="{dy0+8}" stroke="{INK}" stroke-width="0.9"/>',
+        f'<text x="564" y="352" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(d) S2 Safe Deceleration Profile &amp; Language Safety Gate (MOD-V4R)</text>',
+        f'<line x1="564" y1="361" x2="1064" y2="361" stroke="{RULE}" stroke-width="0.8"/>',
+        # 감속 그래프 배경 & 축
+        f'<rect x="{gx0}" y="{gy0}" width="{gw}" height="{gh}" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="0.8"/>',
+        # 감속 구간 음영 (0.14 -> 0.25)
+        f'<rect x="{_gx(0.14):.1f}" y="{gy0}" width="{_gx(0.25)-_gx(0.14):.1f}" height="{gh}" fill="#ECFDF5" opacity="0.8"/>',
+        f'<line x1="{gx0}" y1="{gy0+gh}" x2="{gx0+gw}" y2="{gy0+gh}" stroke="{INK}" stroke-width="1.0"/>',
+        f'<line x1="{gx0}" y1="{gy0}" x2="{gx0}" y2="{gy0+gh}" stroke="{INK}" stroke-width="1.0"/>',
+        # Baseline (no decel: 1.0 until hard stop at 0.25)
+        f'<polyline points="{_gx(0.0):.1f},{_gy(1.0):.1f} {_gx(0.25):.1f},{_gy(1.0):.1f} {_gx(0.25):.1f},{_gy(0.0):.1f}" fill="none" stroke="{C3}" stroke-width="1.6" stroke-dasharray="4 3"/>',
+        # S2 Linear Decel (1.0 -> linear ramp 0.14..0.25 -> 0.0) + Model Preemptive Stop (0.238)
+        f'<polyline points="{_gx(0.0):.1f},{_gy(1.0):.1f} {_gx(0.14):.1f},{_gy(1.0):.1f} {_gx(0.238):.1f},{_gy(0.12):.1f} {_gx(0.238):.1f},{_gy(0.0):.1f}" fill="none" stroke="{C2}" stroke-width="2.4"/>',
+        f'<circle cx="{_gx(0.238):.1f}" cy="{_gy(0.12):.1f}" r="3.8" fill="{C2}"/>',
+        f'<text x="{_gx(0.238)-10:.1f}" y="{_gy(0.12)+3:.1f}" text-anchor="end" font-family="{PUB_MONO}" font-size="7.8" font-weight="700" fill="{C2}">Model Stop (a=0.238)</text>',
+        f'<text x="{_gx(0.02):.1f}" y="{gy0+14}" font-family="{PUB_FONT}" font-size="8.0" fill="{C3}">--- No Decel (a3-s2: 6 contacts)</text>',
+        f'<text x="{_gx(0.02):.1f}" y="{gy0+26}" font-family="{PUB_FONT}" font-size="8.0" font-weight="700" fill="{C2}">— S2 Linear Decel (0.14-&gt;0.25, 0 contacts)</text>',
+        # X축 눈금
+        f'<text x="{_gx(0.0):.1f}" y="{gy0+gh+13}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">0.00</text>',
+        f'<text x="{_gx(0.14):.1f}" y="{gy0+gh+13}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.8" fill="{C2}">0.14 (Ramp)</text>',
+        f'<text x="{_gx(0.25):.1f}" y="{gy0+gh+13}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.8" fill="{INK}">0.25 (Near)</text>',
+        f'<text x="{_gx(0.30):.1f}" y="{gy0+gh+13}" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">0.30</text>',
+        f'<text x="{gx0-6}" y="{gy0+6}" text-anchor="end" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">1.0x</text>',
+        f'<text x="{gx0-6}" y="{gy0+gh}" text-anchor="end" font-family="{PUB_MONO}" font-size="7.8" fill="{MUT}">0.0x</text>',
+        # 하단 언어 게이트 & 조향 정렬 미니 Booktabs (3행)
+        f'<line x1="564" y1="528" x2="1064" y2="528" stroke="{INK}" stroke-width="1.3"/>',
+        f'<text x="564" y="544" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">Safety / Precision Check (Offline)</text>',
+        f'<text x="808" y="544" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{MUT}">Baseline</text>',
+        f'<text x="916" y="544" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{C1}">Proposed</text>',
+        f'<line x1="564" y1="550" x2="1064" y2="550" stroke="{INK}" stroke-width="0.8"/>',
+        f'<text x="564" y="568" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">Steering Alignment vs. Baseline</text>',
+        f'<text x="808" y="568" font-family="{PUB_MONO}" font-size="8.6" fill="{MUT}">25.13 deg (B1)</text>',
+        f'<text x="916" y="568" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C1}">0.54 deg (98.7%)</text>',
+        f'<rect x="564" y="576" width="500" height="24" fill="#F9FAFB"/>',
+        f'<text x="564" y="592" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">Negative-Prompt Safety Stop</text>',
+        f'<text x="808" y="592" font-family="{PUB_MONO}" font-size="8.6" fill="{MUT}">0.0% (no text)</text>',
+        f'<text x="916" y="592" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C1}">99.5% (MOD-V4R)</text>',
+        f'<text x="564" y="616" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">BBox Horizontal-Flip Defense</text>',
+        f'<text x="808" y="616" font-family="{PUB_MONO}" font-size="8.6" fill="{MUT}">86.0% (V4)</text>',
+        f'<text x="916" y="616" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C1}">94.3% (MOD-V4R)</text>',
+        f'<line x1="564" y1="626" x2="1064" y2="626" stroke="{INK}" stroke-width="1.3"/>',
     ]
-    for i, (m, base_v, prop_v, pct, col) in enumerate(d_rows):
-        ry = dy0 + 28 + i * drh
-        if i % 2 == 1:
-            d_svg.append(f'<rect x="564" y="{ry-17}" width="500" height="{drh}" fill="#F9FAFB"/>')
-        d_svg.append(f'<text x="564" y="{ry}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{html.escape(m)}</text>')
-        d_svg.append(f'<text x="792" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" fill="{MUT}">{html.escape(base_v)}</text>')
-        d_svg.append(f'<text x="904" y="{ry-2}" font-family="{PUB_MONO}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(prop_v)}</text>')
-        d_svg.append(_sparkbar(904, ry + 3, 140, pct, col))
-    dbot = dy0 + 28 + len(d_rows) * drh - 12
-    d_svg.append(f'<line x1="564" y1="{dbot}" x2="1064" y2="{dbot}" stroke="{INK}" stroke-width="1.5"/>')
 
     svg_str = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
   <rect x="0" y="0" width="{W}" height="{H}" fill="#FFFFFF"/>
@@ -655,7 +708,7 @@ def build_03_research_question_diagnostic() -> None:
     )
     ov2 = _draw_pub_diag_scene(
         570, 68, 494, 214, sc3,
-        [("VLM-E2E-Hidden", "EG3-08 Hidden", C3, -6), ("VLM-E2E-SoftLoc", "Soft-Loc / AG23", C2, 10)],
+        [("VLM-E2E-Hidden", "EG3-08 Hidden", C3, -6), ("VLM-E2E-SoftLoc", "EG3-11 Soft-Loc", C2, 10)],
     )
 
     # ── Panel (c): Counterfactual Protocol + Visual-Swap Flip Rate Bar Chart ──
@@ -683,13 +736,18 @@ def build_03_research_question_diagnostic() -> None:
         ("VLM-E2E-SoftLoc (EG3-10/11)", 0.0, C2),
     ]
     sy = 446
+    # X축 수직 눈금선 (0%, 10%, 20%, 30%)
+    for tick in (0, 10, 20, 30):
+        tx_t = 218.0 + 230.0 * (tick / 30.0)
+        c_svg.append(f'<line x1="{tx_t:.1f}" y1="432" x2="{tx_t:.1f}" y2="612" stroke="{"#111827" if tick==0 else "#E5E7EB"}" stroke-width="{"1.0" if tick==0 else "0.8"}"{" stroke-dasharray=\"2 2\"" if tick>0 else ""}/>')
+        c_svg.append(f'<text x="{tx_t:.1f}" y="625" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.0" fill="{MUT}">{tick}%</text>')
     for lbl, val, col in swap_bars:
         bw = max(3.0, 230.0 * (val / 30.0))
         c_svg.append(f'<text x="36" y="{sy}" font-family="{PUB_FONT}" font-size="9.4" font-weight="{"700" if val==0 else "400"}" fill="{INK}">{html.escape(lbl)}</text>')
-        c_svg.append(f'<rect x="218" y="{sy-10}" width="230" height="14" fill="#F3F4F6"/>')
+        c_svg.append(f'<rect x="218" y="{sy-10}" width="230" height="14" fill="#F3F4F6" fill-opacity="0.6"/>')
         c_svg.append(f'<rect x="218" y="{sy-10}" width="{bw:.1f}" height="14" fill="{col}"/>')
         c_svg.append(f'<text x="456" y="{sy}" font-family="{PUB_MONO}" font-size="9.4" font-weight="700" fill="{col}">{val:.1f}%</text>')
-        sy += 36
+        sy += 35
     c_svg.append(f'<text x="36" y="646" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">* Motivation (EGVLA-1): 81.4% of 630 offline errors were substitutable actions (1.97% critical L/R flip),</text>')
     c_svg.append(f'<text x="44" y="660" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">revealing that label-only imitation memorizes appearance shortcuts rather than target geometry.</text>')
 
@@ -754,7 +812,7 @@ def build_03_research_question_diagnostic() -> None:
   {ov2}
   <rect x="570" y="290" width="494" height="36" rx="2" fill="#F8FAFC" stroke="#E5E7EB" stroke-width="0.9"/>
   <text x="578" y="305" font-family="{PUB_MONO}" font-size="8.4" fill="{C3}">EG3-08 (Hidden): [0.26,+0.15] GO (18.6% stop)  —  no spatial bottleneck</text>
-  <text x="578" y="319" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C2}">Soft-Loc / AG23: [0.00, 0.00] STOP (93-100%)   —  geometric grounding</text>
+  <text x="578" y="319" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C2}">EG3-11 (Soft-Loc): [0.00, 0.00] STOP (97.7% / SoftLoc+ 100%) — spatial bottleneck</text>
 
   {"".join(c_svg)}
   {"".join(d_svg)}
@@ -764,41 +822,63 @@ def build_03_research_question_diagnostic() -> None:
 
 
 def build_04_eg1_vs_eg2_protocol_y2() -> None:
-    """Figure 4: CVPR/ICRA Publication Style — Ground-Line Stopping (y2) & Fair 3x3 Real-Robot Benchmark."""
-    W, H = 1100, 660
+    """Figure 4: CVPR/ICRA Publication Style — Side-View Pinhole Geometry, Ground-Line (y2) Verification & 3x3 Benchmark."""
+    W, H = 1100, 745
     basket_uri = _b64_img("docs/v5/figures/real_1125/20261125_152041_바구니_trackF_center.jpg")
     chair_uri = _b64_img("docs/v5/figures/real_1125/20261125_155938_의자_trackF_center.jpg")
 
     C1, C2, C3 = "#0072B2", "#009E73", "#D55E00"
     INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
 
-    # ── Panel (a): Ground-Line Geometry on 11/25 Real Arrival Photos ──
+    # ── Panel (a): Real Arrival Photos + Side-View Pinhole Geometry Diagram ──
     a_svg = [
         f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) Object-Size Bias under Area Stopping vs. Ground-Line (y2 = cy + h/2)</text>',
         f'<line x1="36" y1="43" x2="536" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
         # Basket photo
-        f'<text x="36" y="61" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C2}">Small Object: Basket (area=0.28, y2=1.00)</text>',
-        f'<clipPath id="pubBsk"><rect x="36" y="68" width="242" height="134"/></clipPath>',
-        f'<image href="{basket_uri}" x="36" y="68" width="242" height="134" preserveAspectRatio="xMidYMid slice" clip-path="url(#pubBsk)"/>',
-        f'<rect x="36" y="68" width="242" height="134" fill="none" stroke="{INK}" stroke-width="0.9"/>',
-        f'<line x1="36" y1="196" x2="278" y2="196" stroke="{C2}" stroke-width="2.6" stroke-dasharray="6 3"/>',
-        f'<rect x="40" y="176" width="124" height="15" fill="rgba(255,255,255,0.90)"/>',
-        f'<text x="44" y="187" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C2}">y2 = 1.00 (Close)</text>',
+        f'<text x="36" y="61" font-family="{PUB_FONT}" font-size="9.5" font-weight="700" fill="{C2}">Small Object: Basket (area=0.28, y2=1.00)</text>',
+        f'<clipPath id="pubBsk"><rect x="36" y="68" width="242" height="128"/></clipPath>',
+        f'<image href="{basket_uri}" x="36" y="68" width="242" height="128" preserveAspectRatio="xMidYMid slice" clip-path="url(#pubBsk)"/>',
+        f'<rect x="36" y="68" width="242" height="128" fill="none" stroke="{INK}" stroke-width="0.9"/>',
+        f'<line x1="36" y1="190" x2="278" y2="190" stroke="{C2}" stroke-width="2.6" stroke-dasharray="6 3"/>',
+        f'<rect x="40" y="170" width="122" height="15" fill="rgba(255,255,255,0.90)"/>',
+        f'<text x="44" y="181" font-family="{PUB_MONO}" font-size="8.1" font-weight="700" fill="{C2}">y2 = 1.00 (Close)</text>',
         # Chair photo
-        f'<text x="294" y="61" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C3}">Tall Object: Chair (area=0.29, y2=0.82)</text>',
-        f'<clipPath id="pubChr"><rect x="294" y="68" width="242" height="134"/></clipPath>',
-        f'<image href="{chair_uri}" x="294" y="68" width="242" height="134" preserveAspectRatio="xMidYMid slice" clip-path="url(#pubChr)"/>',
-        f'<rect x="294" y="68" width="242" height="134" fill="none" stroke="{INK}" stroke-width="0.9"/>',
-        f'<line x1="294" y1="178" x2="536" y2="178" stroke="{C3}" stroke-width="2.6" stroke-dasharray="6 3"/>',
-        f'<rect x="298" y="158" width="120" height="15" fill="rgba(255,255,255,0.90)"/>',
-        f'<text x="302" y="169" font-family="{PUB_MONO}" font-size="8.2" font-weight="700" fill="{C3}">y2 = 0.82 (Far)</text>',
-        # Concrete geometry chip
-        f'<rect x="36" y="212" width="500" height="36" rx="2" fill="#F8FAFC" stroke="#E5E7EB" stroke-width="0.9"/>',
-        f'<text x="44" y="227" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">Same BBox area (~0.29) -&gt; Tall chair stops earlier than short basket.</text>',
-        f'<text x="44" y="241" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C1}">Fix (A3C_Y2): stop_cond = (y2 &gt;= 0.95), ramp_start = 0.86 (object-height invariant)</text>',
+        f'<text x="294" y="61" font-family="{PUB_FONT}" font-size="9.5" font-weight="700" fill="{C3}">Tall Object: Chair (area=0.29, y2=0.82)</text>',
+        f'<clipPath id="pubChr"><rect x="294" y="68" width="242" height="128"/></clipPath>',
+        f'<image href="{chair_uri}" x="294" y="68" width="242" height="128" preserveAspectRatio="xMidYMid slice" clip-path="url(#pubChr)"/>',
+        f'<rect x="294" y="68" width="242" height="128" fill="none" stroke="{INK}" stroke-width="0.9"/>',
+        f'<line x1="294" y1="172" x2="536" y2="172" stroke="{C3}" stroke-width="2.6" stroke-dasharray="6 3"/>',
+        f'<rect x="298" y="152" width="118" height="15" fill="rgba(255,255,255,0.90)"/>',
+        f'<text x="302" y="163" font-family="{PUB_MONO}" font-size="8.1" font-weight="700" fill="{C3}">y2 = 0.82 (Far)</text>',
+        # 측면 핀홀 기하 단면도 (Side-View Pinhole Geometry)
+        f'<rect x="36" y="206" width="500" height="118" rx="2" fill="#FAFAFA" stroke="#D1D5DB" stroke-width="0.9"/>',
+        f'<text x="46" y="222" font-family="{PUB_FONT}" font-size="9.0" font-weight="700" fill="{INK}">Side-View Pinhole Geometry: Why Ground-Line (y2) Tracks Physical Distance</text>',
+        # 바닥선
+        f'<line x1="56" y1="306" x2="516" y2="306" stroke="{INK}" stroke-width="1.2"/>',
+        # 로봇 카메라
+        f'<rect x="64" y="266" width="32" height="40" rx="2" fill="#E5E7EB" stroke="{INK}" stroke-width="1.0"/>',
+        f'<circle cx="96" cy="276" r="4" fill="{C1}"/>',
+        f'<text x="80" y="260" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" font-weight="700" fill="{INK}">Robot Cam</text>',
+        # 이미지 평면 (점선)
+        f'<line x1="146" y1="234" x2="146" y2="304" stroke="{C1}" stroke-width="1.2" stroke-dasharray="3 2"/>',
+        f'<text x="146" y="230" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.4" fill="{C1}">Image Plane</text>',
+        # 가까운 낮은 바구니
+        f'<rect x="242" y="274" width="38" height="32" fill="#ECFDF5" stroke="{C2}" stroke-width="1.4"/>',
+        f'<text x="261" y="269" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" font-weight="700" fill="{C2}">Basket</text>',
+        f'<line x1="96" y1="276" x2="242" y2="306" stroke="{C2}" stroke-width="1.3" stroke-dasharray="4 2"/>',
+        f'<circle cx="146" cy="286" r="2.8" fill="{C2}"/>',
+        f'<rect x="150" y="291" width="68" height="11" fill="#FAFAFA" opacity="0.92"/>',
+        f'<text x="152" y="299.5" font-family="{PUB_MONO}" font-size="7.3" font-weight="700" fill="{C2}">y2=1.00 (near)</text>',
+        # 먼 키 큰 의자 (같은 시야각 = 같은 BBox area!)
+        f'<rect x="424" y="236" width="40" height="70" fill="#FFF7ED" stroke="{C3}" stroke-width="1.4"/>',
+        f'<text x="444" y="275" text-anchor="middle" font-family="{PUB_FONT}" font-size="7.8" font-weight="700" fill="{C3}">Chair</text>',
+        f'<line x1="96" y1="276" x2="424" y2="306" stroke="{C3}" stroke-width="1.3" stroke-dasharray="4 2"/>',
+        f'<circle cx="146" cy="280" r="2.8" fill="{C3}"/>',
+        f'<text x="152" y="274" font-family="{PUB_MONO}" font-size="7.3" font-weight="700" fill="{C3}">y2=0.82 (far)</text>',
+        f'<text x="286" y="319" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.5" fill="{MUT}">Equal BBox area (~0.29), but ground contact y2 maps monotonically to floor distance d</text>',
     ]
 
-    # ── Panel (b): Offline Verification Table (AG23 vs A3C_Y2_s0, step_bc_results.json) ──
+    # ── Panel (b): Offline Verification Table (내부 파일명 제거 + 트레이드오프 명시) ──
     b_rows = [
         ("Basket Arrival (y2=1.00) Stop", "100.0%", "100.0%", C2),
         ("Chair Far Arrival (y2=0.82) Stop", "100.0% (Early)", "0.0% (Closer)", C1),
@@ -807,9 +887,9 @@ def build_04_eg1_vs_eg2_protocol_y2() -> None:
         ("Visual-Swap Stop Flip Rate", "0.0%", "0.2%", C2),
     ]
     by0 = 86
-    brh = 31
+    brh = 33
     b_svg = [
-        f'<text x="568" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) Ground-Line Policy Verification (Offline Replay, step_bc_results.json)</text>',
+        f'<text x="568" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) Ground-Line Policy Verification (Offline Replay, 11/25 Frames)</text>',
         f'<line x1="568" y1="{by0-17}" x2="1064" y2="{by0-17}" stroke="{INK}" stroke-width="1.5"/>',
         f'<text x="568" y="{by0}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Evaluation Metric</text>',
         f'<text x="802" y="{by0}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{MUT}">AG23 (Area)</text>',
@@ -817,42 +897,41 @@ def build_04_eg1_vs_eg2_protocol_y2() -> None:
         f'<line x1="568" y1="{by0+8}" x2="1064" y2="{by0+8}" stroke="{INK}" stroke-width="0.9"/>',
     ]
     for i, (m, v_ag, v_y2, col) in enumerate(b_rows):
-        ry = by0 + 27 + i * brh
+        ry = by0 + 28 + i * brh
         if i % 2 == 1:
-            b_svg.append(f'<rect x="568" y="{ry-17}" width="496" height="{brh}" fill="#F9FAFB"/>')
+            b_svg.append(f'<rect x="568" y="{ry-18}" width="496" height="{brh}" fill="#F9FAFB"/>')
         b_svg.append(f'<text x="568" y="{ry}" font-family="{PUB_FONT}" font-size="9.3" font-weight="700" fill="{INK}">{html.escape(m)}</text>')
         b_svg.append(f'<text x="802" y="{ry}" font-family="{PUB_MONO}" font-size="8.8" fill="{MUT}">{html.escape(v_ag)}</text>')
         b_svg.append(f'<text x="926" y="{ry}" font-family="{PUB_MONO}" font-size="9.0" font-weight="700" fill="{col}">{html.escape(v_y2)}</text>')
-    bbot = by0 + 27 + len(b_rows) * brh - 12
+    bbot = by0 + 28 + len(b_rows) * brh - 12
     b_svg.append(f'<line x1="568" y1="{bbot}" x2="1064" y2="{bbot}" stroke="{INK}" stroke-width="1.5"/>')
+    b_svg.append(f'<rect x="568" y="{bbot+12}" width="496" height="44" rx="2" fill="#F8FAFC" stroke="#E5E7EB" stroke-width="0.9"/>')
+    b_svg.append(f'<text x="578" y="{bbot+28}" font-family="{PUB_FONT}" font-size="8.4" font-weight="700" fill="{INK}">Honest Trade-Off &amp; Status:</text>')
+    b_svg.append(f'<text x="578" y="{bbot+42}" font-family="{PUB_FONT}" font-size="8.2" fill="{MUT}">Offline verified (real-robot test pending). Basket center-go: 84.9% (A3C_Y2) vs. 97.1% (AG23);</text>')
+    b_svg.append(f'<text x="578" y="{bbot+52}" font-family="{PUB_FONT}" font-size="8.2" fill="{MUT}">chair center-go remains 100.0%. Candidate AG28 (area=0.28) is evaluated alongside A3C_Y2.</text>')
 
     # ── Panel (c): Common 3x3 Real-Robot Protocol (EGVLA-1 vs EGVLA-2) ──
-    cy_hdr = 296
+    cy_hdr = 368
     c_svg = [
-        f'<text x="36" y="{cy_hdr}" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Fair Real-Robot Comparison Protocol — Common 3x3 Route Matrix (Ongoing Paper Benchmark)</text>',
+        f'<text x="36" y="{cy_hdr}" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Fair Real-Robot Comparison Protocol — Common 3x3 Route Matrix (Ongoing Benchmark)</text>',
         f'<line x1="36" y1="{cy_hdr+9}" x2="1064" y2="{cy_hdr+9}" stroke="{RULE}" stroke-width="0.8"/>',
-        # 좌측 3x3 도식
         f'<rect x="36" y="{cy_hdr+22}" width="494" height="270" rx="2" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="0.9"/>',
         f'<text x="52" y="{cy_hdr+44}" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{INK}">Common 9 Routes (3 Start Positions x 3 Random Goal Positions)</text>',
     ]
-    # 목표 G6, G7, G8
     gxs = [110, 283, 456]
     gy, sy_pos = cy_hdr + 72, cy_hdr + 226
     for gx, gl in zip(gxs, ("G6 (Goal A)", "G7 (Goal B)", "G8 (Goal C)")):
         c_svg.append(f'<rect x="{gx-56}" y="{gy}" width="112" height="32" rx="2" fill="#FFFFFF" stroke="{C2}" stroke-width="1.4"/>')
         c_svg.append(f'<text x="{gx}" y="{gy+20}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C2}">{gl}</text>')
-    # 9개 연결선
     for sx in gxs:
         for gx in gxs:
             c_svg.append(f'<line x1="{sx}" y1="{sy_pos}" x2="{gx}" y2="{gy+32}" stroke="#9CA3AF" stroke-width="1.0" stroke-dasharray="3 3"/>')
     c_svg.append(f'<rect x="193" y="{cy_hdr+150}" width="180" height="24" rx="2" fill="#FFFFFF" stroke="#D1D5DB"/>')
     c_svg.append(f'<text x="283" y="{cy_hdr+166}" text-anchor="middle" font-family="{PUB_MONO}" font-size="9.0" font-weight="700" fill="{INK}">3 x 3 = 9 Common Routes</text>')
-    # 출발 pos1, pos2, pos3
     for sx, sl in zip(gxs, ("pos1 (Start 1)", "pos2 (Start 2)", "pos3 (Start 3)")):
         c_svg.append(f'<rect x="{sx-56}" y="{sy_pos}" width="112" height="32" rx="2" fill="#FFFFFF" stroke="{C1}" stroke-width="1.4"/>')
         c_svg.append(f'<text x="{sx}" y="{sy_pos+20}" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.8" font-weight="700" fill="{C1}">{sl}</text>')
 
-    # 우측 프로토콜 비교 Booktabs 표
     p_rows = [
         ("Start / Goal Grid", "pos1-3 -> G6-8 (9 routes)", "pos1-3 -> G6-8 (9 routes)"),
         ("Target Objects", "Basket only (1 seen)", "Basket, Chair, Desk (2 unseen)"),
@@ -885,53 +964,74 @@ def build_04_eg1_vs_eg2_protocol_y2() -> None:
   {"".join(a_svg)}
   {"".join(b_svg)}
   {"".join(c_svg)}
-  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 4. Ground-line stopping (y2) resolves object-height stopping bias in offline verification (a, b), paired with a unified 3x3 real-robot benchmark protocol (c).</text>
+  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 4. Side-view pinhole geometry &amp; ground-line stopping (y2) offline verification (a, b), paired with a unified 3x3 real-robot benchmark protocol (c).</text>
 </svg>'''
     _save_svg_and_png("04_eg1_vs_eg2_protocol_y2", svg_str)
 
 
 def build_05_publications_awards_stack() -> None:
-    """Figure 5: CVPR/ICRA Academic Summary — Publications, Systems & Core Technical Stack."""
-    W, H = 1100, 500
+    """Figure 5: CVPR/ICRA Academic Summary — Research Timeline, Publications, Systems & Technical Stack."""
+    W, H = 1100, 610
     C1, C2, C3 = "#0072B2", "#009E73", "#D55E00"
     INK, MUT, RULE = "#111827", "#4B5563", "#D1D5DB"
 
-    # (a) Publications Booktabs
+    # (a) Research & Engineering Progression Timeline (2024 - 2026)
+    milestones = [
+        ("2024.05", "Liberty", "LangGraph Multi-Agent", "Excellence Award", C3),
+        ("2024.10", "Ladi & JCCT", "RAG Retrieval & Paper", "IPACT Outstanding", C2),
+        ("2025.03", "Serbot 2", "Jetson + ROS2 Stack", "Platform Integration", C1),
+        ("2026.08", "EGVLA-1", "On-Device 95%/92%", "JKSCI 1st Author", C1),
+        ("2026.11", "EGVLA-2 / 3", "45/45 0c & Soft-Loc", "Comparison Paper", C2),
+    ]
+    tl_svg = [
+        f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) Research &amp; Engineering Progression (2024 – 2026)</text>',
+        f'<line x1="36" y1="43" x2="1064" y2="43" stroke="{RULE}" stroke-width="0.8"/>',
+        f'<line x1="88" y1="74" x2="1012" y2="74" stroke="#9CA3AF" stroke-width="1.6"/>',
+    ]
+    for i, (dt, nm, sub, tag, col) in enumerate(milestones):
+        mx = 128 + i * 211
+        tl_svg.append(f'<circle cx="{mx}" cy="74" r="5.5" fill="{col}" stroke="#FFFFFF" stroke-width="1.5"/>')
+        tl_svg.append(f'<text x="{mx}" y="61" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{col}">{dt}</text>')
+        tl_svg.append(f'<rect x="{mx-88}" y="86" width="176" height="44" rx="2" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="0.9"/>')
+        tl_svg.append(f'<text x="{mx}" y="102" text-anchor="middle" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">{html.escape(nm)}</text>')
+        tl_svg.append(f'<text x="{mx}" y="114" text-anchor="middle" font-family="{PUB_FONT}" font-size="8.0" fill="{MUT}">{html.escape(sub)}</text>')
+        tl_svg.append(f'<text x="{mx}" y="125" text-anchor="middle" font-family="{PUB_MONO}" font-size="7.5" font-weight="700" fill="{col}">{html.escape(tag)}</text>')
+
+    # (b) Publications Booktabs
+    oy = 126
     p_svg = [
-        f'<text x="36" y="34" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(a) Publications &amp; Manuscripts</text>',
-        f'<line x1="36" y1="45" x2="1064" y2="45" stroke="{INK}" stroke-width="1.5"/>',
-        f'<text x="36" y="63" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Venue</text>',
-        f'<text x="150" y="63" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Role</text>',
-        f'<text x="244" y="63" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Title &amp; Key Contribution</text>',
-        f'<text x="930" y="63" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Status</text>',
-        f'<line x1="36" y1="71" x2="1064" y2="71" stroke="{INK}" stroke-width="0.9"/>',
-        # Row 1
-        f'<text x="36" y="94" font-family="{PUB_MONO}" font-size="9.2" font-weight="700" fill="{C1}">JKSCI (KCI)</text>',
-        f'<text x="150" y="94" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">1st Author</text>',
-        f'<text x="244" y="94" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">EdgeGround-VLA: On-Device Goal-Directed Navigation via Dual Frozen Grounding Encoders</text>',
-        f'<text x="244" y="109" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">1.128M/459M trained · Jetson Orin NX + Serbot 2 · 95.0% seen / 92.0% overall (300 trials)</text>',
-        f'<text x="930" y="94" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C1}">Under Review (2026)</text>',
-        # Row 2
-        f'<rect x="36" y="118" width="1028" height="40" fill="#F9FAFB"/>',
-        f'<text x="36" y="136" font-family="{PUB_MONO}" font-size="9.2" font-weight="700" fill="{C2}">JCCT 10(6)</text>',
-        f'<text x="150" y="136" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">2nd Author</text>',
-        f'<text x="244" y="136" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Designing Conversational AI Services Using RAG-Based Loneliness Analysis for Koreans</text>',
-        f'<text x="244" y="151" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">JCCT 10(6):625-633 · IPACT 2024 Outstanding Paper Award</text>',
-        f'<text x="930" y="136" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C2}">Published (2024)</text>',
-        f'<line x1="36" y1="162" x2="1064" y2="162" stroke="{INK}" stroke-width="1.5"/>',
+        f'<text x="36" y="{34+oy}" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) Publications &amp; Manuscripts</text>',
+        f'<line x1="36" y1="{45+oy}" x2="1064" y2="{45+oy}" stroke="{INK}" stroke-width="1.5"/>',
+        f'<text x="36" y="{63+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Venue</text>',
+        f'<text x="150" y="{63+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Role</text>',
+        f'<text x="244" y="{63+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Title &amp; Key Contribution</text>',
+        f'<text x="930" y="{63+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{INK}">Status</text>',
+        f'<line x1="36" y1="{71+oy}" x2="1064" y2="{71+oy}" stroke="{INK}" stroke-width="0.9"/>',
+        f'<text x="36" y="{94+oy}" font-family="{PUB_MONO}" font-size="9.2" font-weight="700" fill="{C1}">JKSCI (KCI)</text>',
+        f'<text x="150" y="{94+oy}" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">1st Author</text>',
+        f'<text x="244" y="{94+oy}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">EdgeGround-VLA: On-Device Goal-Directed Navigation via Dual Frozen Grounding Encoders</text>',
+        f'<text x="244" y="{109+oy}" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">1.128M/459M trained · Jetson Orin NX + Serbot 2 · 95.0% seen / 92.0% overall (300 trials)</text>',
+        f'<text x="930" y="{94+oy}" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C1}">Under Review (2026)</text>',
+        f'<rect x="36" y="{118+oy}" width="1028" height="40" fill="#F9FAFB"/>',
+        f'<text x="36" y="{136+oy}" font-family="{PUB_MONO}" font-size="9.2" font-weight="700" fill="{C2}">JCCT 10(6)</text>',
+        f'<text x="150" y="{136+oy}" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">2nd Author</text>',
+        f'<text x="244" y="{136+oy}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Designing Conversational AI Services Using RAG-Based Loneliness Analysis for Koreans</text>',
+        f'<text x="244" y="{151+oy}" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">JCCT 10(6):625-633 · IPACT 2024 Outstanding Paper Award</text>',
+        f'<text x="930" y="{136+oy}" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="{C2}">Published (2024)</text>',
+        f'<line x1="36" y1="{162+oy}" x2="1064" y2="{162+oy}" stroke="{INK}" stroke-width="1.5"/>',
     ]
 
-    # (b) Systems & Awards (좌측) + (c) Technical Stack (우측)
+    # (c) Systems & Awards + (d) Technical Stack
     b_rows = [
         ("Serbot 2 Integration", "Jetson Orin Linux + ROS2 driver & locomotion stack", "2025.01-03"),
         ("Ladi (RAG System)", "KiwiBM25 + FAISS + CrossEncoder routine recommender", "Best Project"),
         ("Liberty (Multi-Agent)", "LangGraph legal QA multi-agent (PM & Lead Architect)", "Excellence"),
         ("Honors & Competitions", "Capstone Silver (2026) · Kangnengthon Grand Prize (2025)", "SW 1st · AI Exc."),
     ]
-    by0 = 226
-    brh = 41
+    by0 = 222 + oy
+    brh = 39
     b_svg = [
-        f'<text x="36" y="196" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(b) Robotics / Agent Systems &amp; Honors</text>',
+        f'<text x="36" y="{192+oy}" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Robotics / Agent Systems &amp; Honors</text>',
         f'<line x1="36" y1="{by0-17}" x2="574" y2="{by0-17}" stroke="{INK}" stroke-width="1.5"/>',
         f'<text x="36" y="{by0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Project / Honor</text>',
         f'<text x="178" y="{by0}" font-family="{PUB_FONT}" font-size="9.4" font-weight="700" fill="{INK}">Scope</text>',
@@ -939,42 +1039,42 @@ def build_05_publications_awards_stack() -> None:
         f'<line x1="36" y1="{by0+8}" x2="574" y2="{by0+8}" stroke="{INK}" stroke-width="0.9"/>',
     ]
     for i, (nm, sc, out) in enumerate(b_rows):
-        ry = by0 + 30 + i * brh
+        ry = by0 + 29 + i * brh
         if i % 2 == 1:
-            b_svg.append(f'<rect x="36" y="{ry-19}" width="538" height="{brh}" fill="#F9FAFB"/>')
+            b_svg.append(f'<rect x="36" y="{ry-18}" width="538" height="{brh}" fill="#F9FAFB"/>')
         b_svg.append(f'<text x="36" y="{ry}" font-family="{PUB_FONT}" font-size="9.2" font-weight="700" fill="{INK}">{html.escape(nm)}</text>')
         b_svg.append(f'<text x="178" y="{ry}" font-family="{PUB_FONT}" font-size="8.6" fill="{MUT}">{html.escape(sc)}</text>')
         b_svg.append(f'<text x="488" y="{ry}" font-family="{PUB_MONO}" font-size="8.4" font-weight="700" fill="{C1}">{html.escape(out)}</text>')
-    b_svg.append(f'<line x1="36" y1="{by0 + 30 + len(b_rows)*brh - 14}" x2="574" y2="{by0 + 30 + len(b_rows)*brh - 14}" stroke="{INK}" stroke-width="1.5"/>')
+    b_svg.append(f'<line x1="36" y1="{by0 + 29 + len(b_rows)*brh - 14}" x2="574" y2="{by0 + 29 + len(b_rows)*brh - 14}" stroke="{INK}" stroke-width="1.5"/>')
 
-    # (c) Core Technical Stack (우측)
     c_svg = [
-        f'<text x="604" y="196" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(c) Core Technical Stack &amp; Links</text>',
-        f'<line x1="604" y1="209" x2="1064" y2="209" stroke="{INK}" stroke-width="1.5"/>',
+        f'<text x="604" y="{192+oy}" font-family="{PUB_FONT}" font-size="12.2" font-weight="700" fill="{INK}">(d) Core Technical Stack &amp; Links</text>',
+        f'<line x1="604" y1="{205+oy}" x2="1064" y2="{205+oy}" stroke="{INK}" stroke-width="1.5"/>',
 
-        f'<rect x="604" y="220" width="460" height="54" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
-        f'<text x="616" y="238" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C1}">AI &amp; Vision-Language-Action (VLA)</text>',
-        f'<text x="616" y="255" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">PyTorch · HuggingFace · LoRA/PEFT · Flow Matching</text>',
-        f'<text x="616" y="268" font-family="{PUB_MONO}" font-size="8.2" fill="{MUT}">Florence-2 · OWLv2 · Kosmos-2 · SigLIP · PaliGemma2</text>',
+        f'<rect x="604" y="{215+oy}" width="460" height="52" rx="2" fill="#F8FAFC" stroke="{C1}" stroke-width="1.0"/>',
+        f'<text x="616" y="{233+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C1}">AI &amp; Vision-Language-Action (VLA)</text>',
+        f'<text x="616" y="{249+oy}" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">PyTorch · HuggingFace · LoRA/PEFT · Flow Matching</text>',
+        f'<text x="616" y="{262+oy}" font-family="{PUB_MONO}" font-size="8.2" fill="{MUT}">Florence-2 · OWLv2 · Kosmos-2 · SigLIP · PaliGemma2</text>',
 
-        f'<rect x="604" y="282" width="460" height="46" rx="2" fill="#F8FAFC" stroke="{C2}" stroke-width="1.0"/>',
-        f'<text x="616" y="300" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C2}">Robotics &amp; On-Device Deployment</text>',
-        f'<text x="616" y="317" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">ROS2 · Jetson Orin NX · Async Control (10Hz) · Ubuntu Linux</text>',
+        f'<rect x="604" y="{274+oy}" width="460" height="44" rx="2" fill="#F8FAFC" stroke="{C2}" stroke-width="1.0"/>',
+        f'<text x="616" y="{291+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C2}">Robotics &amp; On-Device Deployment</text>',
+        f'<text x="616" y="{308+oy}" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">ROS2 · Jetson Orin NX · Async Control (10Hz) · Ubuntu Linux</text>',
 
-        f'<rect x="604" y="336" width="460" height="46" rx="2" fill="#F8FAFC" stroke="{C3}" stroke-width="1.0"/>',
-        f'<text x="616" y="354" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C3}">Agent Orchestration &amp; Retrieval</text>',
-        f'<text x="616" y="371" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">LangGraph · FAISS · KiwiBM25 · CrossEncoder · FastAPI · Git</text>',
+        f'<rect x="604" y="{325+oy}" width="460" height="44" rx="2" fill="#F8FAFC" stroke="{C3}" stroke-width="1.0"/>',
+        f'<text x="616" y="{342+oy}" font-family="{PUB_FONT}" font-size="9.6" font-weight="700" fill="{C3}">Agent Orchestration &amp; Retrieval</text>',
+        f'<text x="616" y="{359+oy}" font-family="{PUB_MONO}" font-size="8.4" fill="{INK}">LangGraph · FAISS · KiwiBM25 · CrossEncoder · FastAPI · Git</text>',
 
-        f'<rect x="604" y="392" width="460" height="32" rx="2" fill="#111827"/>',
-        f'<text x="834" y="412" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="#FFFFFF">minuum.github.io/EdgeGroundVLA  |  github.com/minuum  |  minwool0357@gmail.com</text>',
+        f'<rect x="604" y="{378+oy}" width="460" height="30" rx="2" fill="#111827"/>',
+        f'<text x="834" y="{397+oy}" text-anchor="middle" font-family="{PUB_MONO}" font-size="8.8" font-weight="700" fill="#FFFFFF">minuum.github.io/EdgeGroundVLA  |  github.com/minuum  |  minwool0357@gmail.com</text>',
     ]
 
     svg_str = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
   <rect x="0" y="0" width="{W}" height="{H}" fill="#FFFFFF"/>
+  {"".join(tl_svg)}
   {"".join(p_svg)}
   {"".join(b_svg)}
   {"".join(c_svg)}
-  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 5. Research publications, real-robot &amp; multi-agent system implementations, honors, and core technical stack.</text>
+  <text x="36" y="{H - 14}" font-family="{PUB_FONT}" font-size="9.1" fill="{MUT}">Figure 5. Research &amp; engineering progression (2024-2026), publications, real-robot &amp; agent systems, honors, and technical stack.</text>
 </svg>'''
     _save_svg_and_png("05_publications_awards_stack", svg_str)
 
